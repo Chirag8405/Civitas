@@ -103,7 +103,6 @@ export function MapConstituency({
       setOptions({ key: apiKey, v: "weekly" });
       Promise.all([
         importLibrary("maps"),
-        importLibrary("drawing"),
       ]).then(() => {
         if (!isMounted || !mapNode.current) return;
 
@@ -146,46 +145,52 @@ export function MapConstituency({
       controls.appendChild(zoomOut);
       map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(controls);
 
-      const drawingManager = new google.maps.drawing.DrawingManager({
-        drawingControl: false,
-        drawingMode: google.maps.drawing.OverlayType.POLYGON,
-        polygonOptions: {
-          fillColor: "#C0392B",
-          fillOpacity: 0.08,
-          strokeColor: "#C0392B",
-          strokeWeight: 3,
-        },
+      // Manual polygon drawing (replacing DrawingManager)
+      const boundaryPolygon = new g.maps.Polygon({
+        map: map,
+        paths: [],
+        fillColor: "#C0392B",
+        fillOpacity: 0.08,
+        strokeColor: "#C0392B",
+        strokeWeight: 3,
+        editable: true,
       });
+      boundaryRef.current = boundaryPolygon;
 
-      drawingManager.setMap(map);
-      drawingRef.current = drawingManager;
+      const updateBoundary = () => {
+        const path = boundaryPolygon.getPath();
+        if (!path) return;
+        const pts = path.getArray().map((pt: any) => ({ lat: pt.lat(), lng: pt.lng() }));
+        onBoundaryChange?.(pts);
+      };
 
-      google.maps.event.addListener(
-        drawingManager,
-        "overlaycomplete",
-        (event: any) => {
-          if (event.type !== google.maps.drawing.OverlayType.POLYGON) return;
-
-          if (boundaryRef.current) {
-            boundaryRef.current.setMap(null);
-          }
-
-          const polygon = event.overlay;
-          boundaryRef.current = polygon;
-          drawingManager.setDrawingMode(null);
-
-          const path = polygon
-            .getPath()
-            .getArray()
-            .map((point: any) => ({ lat: point.lat(), lng: point.lng() }));
-
-          onBoundaryChange?.(path);
-        }
-      );
+      const pathObj = boundaryPolygon.getPath();
+      g.maps.event.addListener(pathObj, "set_at", updateBoundary);
+      g.maps.event.addListener(pathObj, "insert_at", updateBoundary);
+      g.maps.event.addListener(pathObj, "remove_at", updateBoundary);
 
       map.addListener("click", (event: any) => {
         if (!event.latLng) return;
-        onBoothPlace?.({ lat: event.latLng.lat(), lng: event.latLng.lng() });
+        const loc = { lat: event.latLng.lat(), lng: event.latLng.lng() };
+        
+        // Wait, MapConstituency isn't primarily for editing anymore in this component version?
+        // Actually, if onBoothPlace is passed, maybe it's booth mode?
+        // We'll mimic the logic: if there's onBoothPlace, it's booth mode, else boundary mode.
+        // But wait, the original logic always fired onBoothPlace on map click, and the drawing manager handled polygon drawing!
+        if (onBoothPlace) {
+          onBoothPlace(loc);
+        } else if (onBoundaryChange) {
+          boundaryPolygon.getPath().push(event.latLng);
+          updateBoundary();
+        }
+      });
+      
+      // Allow right-click on polygon vertex to remove it
+      g.maps.event.addListener(boundaryPolygon, "rightclick", (ev: any) => {
+        if (ev.vertex != null && !onBoothPlace) {
+          boundaryPolygon.getPath().removeAt(ev.vertex);
+          updateBoundary();
+        }
       });
 
       setIsReady(true);

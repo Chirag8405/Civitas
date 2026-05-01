@@ -34,6 +34,13 @@ export default function VoterRollPage() {
   const voterCount = 200;
   const sheetUrl = constituency.voterRollUrl;
 
+  // ── Guard: map + booths must be complete before reaching voter-roll ───────────
+  useEffect(() => {
+    if (constituency.pollingBooths.length === 0) {
+      router.replace("/setup/map");
+    }
+  }, [constituency.pollingBooths.length, router]);
+
   // ── Zone breakdown from store ──────────────────────────────────────────────
   useEffect(() => {
     if (constituency.zones.length > 0) {
@@ -135,7 +142,12 @@ export default function VoterRollPage() {
         onSignOut={() => router.push("/login")}
       />
 
-      <main className="ml-60 flex-1 p-10">
+      <main
+        className={cn(
+          "ml-60 flex-1 p-10 transition-[margin] duration-200 ease-in-out",
+          advisorOpen ? "mr-[400px]" : "mr-0"
+        )}
+      >
         <PageHeader
           title="Official Voter Roll"
           subtitle={`${constituency.name || "Constituency"} · ${constituency.country}`}
@@ -286,7 +298,7 @@ export default function VoterRollPage() {
 
       {/* Gemini Advisor */}
       {advisorOpen && (
-        <div className="fixed bottom-0 right-0 top-0 w-[400px] z-50">
+        <div className="fixed bottom-0 right-0 top-0 w-[400px] z-50 shadow-2xl">
           <GeminiAdvisor
             onSend={handleAdvisorSend}
             messages={advisorMessages}

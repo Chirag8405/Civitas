@@ -68,6 +68,7 @@ export interface SimulationState {
       boothRequirements: string;
     };
     bounds: LatLngBounds;
+    center?: LatLng;
     pollingBooths: PollingBooth[];
     zones: Zone[];
     voterRollUrl: string;

@@ -21,7 +21,7 @@ type SetupStep = "country" | "neighbourhood" | "system";
 
 export default function SetupPage() {
   const router = useRouter();
-  const { constituency, updateConstituency, setPhase } = useSimulationStore();
+  const { constituency, updateConstituency } = useSimulationStore();
   const [step, setStep] = useState<SetupStep>("country");
   const [selectedCountry, setSelectedCountry] = useState(
     constituency.country || ""
@@ -85,14 +85,14 @@ export default function SetupPage() {
 
   const handleConfirmSetup = () => {
     if (systemInfo) {
+      // Save constituency basics — Act 1 is NOT certified here.
+      // Certification only fires on /setup/voter-roll after map + booth completion.
       updateConstituency({
         country: selectedCountry,
         name: neighbourhood,
         electoralSystemInfo: systemInfo,
       });
-      // Advance phase so middleware/dashboard never bounces back to /setup
-      setPhase("calendar");
-      router.push("/dashboard");
+      router.push("/setup/map");
     }
   };
 
@@ -265,7 +265,7 @@ export default function SetupPage() {
                   onClick={handleConfirmSetup}
                   className="flex-1 px-6 py-3 font-mono text-sm font-bold uppercase tracking-widest bg-officialRed text-formWhite border-2 border-officialRed hover:bg-govGold hover:text-inkNavy hover:border-govGold transition-all active:scale-95"
                 >
-                  Confirm & Start
+                  Confirm &amp; Draw Map →
                 </button>
               </div>
             </OfficialCard>

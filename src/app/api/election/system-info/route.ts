@@ -49,20 +49,21 @@ async function fetchFromGemini(
   neighbourhood: string,
   apiKey: string
 ): Promise<ElectoralSystemResponse> {
-  const prompt = `You are an expert in electoral law. For the country with ISO code "${country}" (neighbourhood context: "${neighbourhood}"), provide factual, legally accurate information in this exact JSON format with no markdown or code fences:
+  const prompt = `You are an expert in electoral law. For the country with ISO code "${country}" (neighbourhood context: "${neighbourhood}"), provide factual, legally accurate information in this exact JSON format:
 {
-  "system": "<official name of the electoral system used for local/constituency elections>",
-  "registrationRules": "<voter registration rules, age requirements, deadlines, and the specific Act or regulation that governs them, in 1–2 sentences>",
-  "boothRequirements": "<polling booth/station requirements including voter-to-booth ratio, equipment, and the governing regulation, in 1–2 sentences>"
+  "system": "<system name>",
+  "registrationRules": "<registration rules>",
+  "boothRequirements": "<booth requirements>"
 }
-Use Google Search to ground your answer in current, official sources. Return only valid JSON.`;
+Use Google Search to ground your answer in current, official sources. 
+Respond in valid JSON only. Keep all string values under 100 characters. No line breaks inside strings. Do not include any trailing text, markdown, or commentary.`;
 
   const body = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     tools: [{ googleSearch: {} }],
     generationConfig: {
       temperature: 0.1,
-      maxOutputTokens: 512,
+      maxOutputTokens: 1024,
     },
   };
 
@@ -84,9 +85,23 @@ Use Google Search to ground your answer in current, official sources. Return onl
   const rawText: string =
     data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
-  // Strip possible markdown code fences
-  const jsonText = rawText.replace(/```(?:json)?\n?/g, "").trim();
-  const parsed = JSON.parse(jsonText) as ElectoralSystemResponse;
+  // Extract JSON from first { to last }
+  let jsonText = rawText;
+  const startIdx = rawText.indexOf("{");
+  const endIdx = rawText.lastIndexOf("}");
+  if (startIdx !== -1 && endIdx !== -1 && endIdx >= startIdx) {
+    jsonText = rawText.slice(startIdx, endIdx + 1);
+  } else {
+    // Fallback strip
+    jsonText = rawText.replace(/```(?:json)?\n?/g, "").trim();
+  }
+
+  let parsed: ElectoralSystemResponse;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch (e) {
+    throw new Error(`JSON Parse Error: ${(e as Error).message}. Raw: ${jsonText}`);
+  }
 
   // Attach grounding source if present
   const groundingChunks =

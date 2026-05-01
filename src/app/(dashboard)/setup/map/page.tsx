@@ -94,6 +94,13 @@ export default function MapPage() {
   const [mapReady, setMapReady] = React.useState(false);
   const [mapMissing, setMapMissing] = React.useState(false);
 
+  // ── Guard: constituency must be named before reaching the map ────────────────
+  React.useEffect(() => {
+    if (!constituency.name) {
+      router.replace("/setup");
+    }
+  }, [constituency.name, router]);
+
   // ── Derived state ──────────────────────────────────────────────────────────
   const activeWarnings = warnings.filter((w) => !dismissedWarnings.has(w));
   const canValidate =
@@ -111,19 +118,36 @@ export default function MapPage() {
       setOptions({ key: apiKey, v: "weekly" });
       Promise.all([
         importLibrary("maps"),
-        importLibrary("drawing"),
-      ]).then(([mapsLib]) => {
+      ]).then(() => {
         if (!mounted || !mapNodeRef.current) return;
         const g = (window as any).google;
 
         const map = new g.maps.Map(mapNodeRef.current, {
-          center: { lat: 20, lng: 78 },
-          zoom: 12,
+          center: constituency.center ?? { lat: 20, lng: 78 },
+          zoom: constituency.center ? 14 : 12,
           styles: MONOCHROME_STYLES,
           disableDefaultUI: true,
           backgroundColor: "#F5F0E8",
         });
         mapRef.current = map;
+
+        // Auto-center via Geocoding if not already centered
+        if (!constituency.center && constituency.name) {
+          const geocoder = new g.maps.Geocoder();
+          geocoder.geocode(
+            { address: `${constituency.name}, ${constituency.country}` },
+            (results: any, status: any) => {
+              if (status === "OK" && results?.[0]?.geometry?.location) {
+                const loc = results[0].geometry.location;
+                map.setCenter(loc);
+                map.setZoom(14);
+                updateConstituency({ center: { lat: loc.lat(), lng: loc.lng() } });
+              } else {
+                console.warn("Geocoding failed:", status);
+              }
+            }
+          );
+        }
 
         // Custom zoom controls
         const zoomDiv = document.createElement("div");
@@ -142,37 +166,49 @@ export default function MapPage() {
         });
         map.controls[g.maps.ControlPosition.RIGHT_BOTTOM].push(zoomDiv);
 
-        // Drawing manager – polygon only
-        const dm = new g.maps.drawing.DrawingManager({
-          drawingControl: false,
-          drawingMode: g.maps.drawing.OverlayType.POLYGON,
-          polygonOptions: {
-            fillColor: "#C0392B",
-            fillOpacity: 0.08,
-            strokeColor: "#C0392B",
-            strokeWeight: 3,
-            editable: true,
-          },
+        // Manual polygon drawing (replacing DrawingManager)
+        const boundaryPolygon = new g.maps.Polygon({
+          map: map,
+          paths: [],
+          fillColor: "#C0392B",
+          fillOpacity: 0.08,
+          strokeColor: "#C0392B",
+          strokeWeight: 3,
+          editable: true,
         });
-        dm.setMap(map);
-        drawingRef.current = dm;
+        boundaryPolygonRef.current = boundaryPolygon;
 
-        g.maps.event.addListener(dm, "overlaycomplete", (ev: any) => {
-          if (ev.type !== g.maps.drawing.OverlayType.POLYGON) return;
-          if (boundaryPolygonRef.current) boundaryPolygonRef.current.setMap(null);
-          boundaryPolygonRef.current = ev.overlay;
-          dm.setDrawingMode(null);
-          const path: LatLng[] = ev.overlay
-            .getPath()
-            .getArray()
-            .map((pt: any) => ({ lat: pt.lat(), lng: pt.lng() }));
-          setBoundary(path);
-        });
+        const updateBoundary = () => {
+          const path = boundaryPolygon.getPath();
+          if (!path) return;
+          const pts: LatLng[] = path.getArray().map((pt: any) => ({ lat: pt.lat(), lng: pt.lng() }));
+          setBoundary(pts);
+        };
+
+        const pathObj = boundaryPolygon.getPath();
+        g.maps.event.addListener(pathObj, "set_at", updateBoundary);
+        g.maps.event.addListener(pathObj, "insert_at", updateBoundary);
+        g.maps.event.addListener(pathObj, "remove_at", updateBoundary);
 
         map.addListener("click", (ev: any) => {
           if (!ev.latLng) return;
           const loc: LatLng = { lat: ev.latLng.lat(), lng: ev.latLng.lng() };
-          if (boothModeRef.current) handleBoothPlace(loc);
+          
+          if (boothModeRef.current) {
+            handleBoothPlace(loc);
+          } else {
+            // Draw mode: add vertex
+            boundaryPolygon.getPath().push(ev.latLng);
+            updateBoundary();
+          }
+        });
+
+        // Allow right-click on polygon vertex to remove it
+        g.maps.event.addListener(boundaryPolygon, "rightclick", (ev: any) => {
+          if (ev.vertex != null && !boothModeRef.current) {
+            boundaryPolygon.getPath().removeAt(ev.vertex);
+            updateBoundary();
+          }
         });
 
         setMapReady(true);
@@ -573,7 +609,12 @@ export default function MapPage() {
       </aside>
 
       {/* ── Map area ─────────────────────────────────────────────────────── */}
-      <div className="flex-1 relative">
+      <div 
+        className={cn(
+          "flex-1 relative transition-[margin] duration-200 ease-in-out",
+          advisorOpen ? "mr-[400px]" : "mr-0"
+        )}
+      >
         {mapMissing ? (
           <div className="flex h-full items-center justify-center bg-paperCream">
             <div className="text-center">

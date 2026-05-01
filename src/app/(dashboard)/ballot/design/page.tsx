@@ -343,7 +343,12 @@ Return a JSON array of flag strings (issues only, empty array if none). No markd
         onSignOut={() => router.push("/login")}
       />
 
-      <main className="ml-60 flex-1 p-10">
+      <main
+        className={cn(
+          "ml-60 flex-1 p-10 transition-[margin] duration-200 ease-in-out",
+          advisorOpen ? "mr-[400px]" : "mr-0"
+        )}
+      >
         <PageHeader
           title="Ballot Design"
           subtitle={`${constituency.name || "Constituency"} — Official Ballot Paper`}
@@ -518,7 +523,7 @@ Return a JSON array of flag strings (issues only, empty array if none). No markd
       </main>
 
       {advisorOpen && (
-        <div className="fixed bottom-0 right-0 top-0 w-[400px] z-50">
+        <div className="fixed bottom-0 right-0 top-0 w-[400px] z-50 shadow-2xl">
           <GeminiAdvisor
             onSend={handleAdvisorSend}
             messages={advisorMessages}

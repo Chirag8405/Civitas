@@ -22,7 +22,7 @@ const ACT_NAV_KEY: Record<ActId, NavItemKey> = {
 };
 
 const ACT_ROUTES: Record<ActId, string> = {
-  ACT_1: "/setup",
+  ACT_1: "/setup/map", // default; overridden dynamically based on sub-step
   ACT_2: "/calendar",
   ACT_3: "/polling",
 };
@@ -102,11 +102,21 @@ export default function DashboardPage() {
 
   const handleEnterAct = useCallback(
     (actId: ActId) => {
-      if (actStatus[actId] !== "locked") {
+      if (actStatus[actId] === "locked") return;
+      if (actId === "ACT_1") {
+        // Route to the correct sub-step in Act 1
+        if (!constituency.name) {
+          router.push("/setup");
+        } else if (constituency.pollingBooths.length === 0) {
+          router.push("/setup/map");
+        } else {
+          router.push("/setup/voter-roll");
+        }
+      } else {
         router.push(ACT_ROUTES[actId]);
       }
     },
-    [actStatus, router]
+    [actStatus, constituency.name, constituency.pollingBooths.length, router]
   );
 
   const handleAdvisorSend = useCallback(async (message: string) => {
@@ -154,7 +164,12 @@ export default function DashboardPage() {
         onSignOut={() => router.push("/login")}
       />
 
-      <main className="ml-60 flex-1 p-12">
+      <main
+        className={cn(
+          "ml-60 flex-1 p-12 transition-[margin] duration-200 ease-in-out",
+          advisorOpen ? "mr-[400px]" : "mr-0"
+        )}
+      >
         <PageHeader
           title="Election Control Room"
           subtitle={`Returning Officer — ${constituency.name || "Constituency not configured"}`}
@@ -283,8 +298,8 @@ export default function DashboardPage() {
                       </ul>
                     )}
 
-                    {/* CTA */}
-                    {!isLocked && (
+                    {/* CTA — only show when not locked AND not certified */}
+                    {!isLocked && !isCertified && (
                       <div className="mt-5">
                         <button
                           id={`enter-${act.id.toLowerCase()}`}
@@ -292,14 +307,15 @@ export default function DashboardPage() {
                             e.stopPropagation();
                             handleEnterAct(act.id);
                           }}
-                          className={cn(
-                            "px-4 py-2 font-mono text-xs font-bold uppercase tracking-widest border-2 transition-all active:scale-95",
-                            isCertified
-                              ? "border-govGold text-govGold hover:bg-govGold hover:text-inkNavy"
-                              : "bg-officialRed text-formWhite border-officialRed hover:bg-inkNavy hover:border-inkNavy"
-                          )}
+                          className="px-4 py-2 font-mono text-xs font-bold uppercase tracking-widest border-2 transition-all active:scale-95 bg-officialRed text-formWhite border-officialRed hover:bg-inkNavy hover:border-inkNavy"
                         >
-                          {isCertified ? "Review Act" : "Enter Act →"}
+                          {act.id === "ACT_1"
+                            ? constituency.pollingBooths.length > 0
+                              ? "Continue → Voter Roll"
+                              : constituency.name
+                              ? "Continue → Draw Map"
+                              : "Enter Act →"
+                            : "Enter Act →"}
                         </button>
                       </div>
                     )}
@@ -411,8 +427,9 @@ export default function DashboardPage() {
       </main>
 
       {/* Gemini Advisor slide-in */}
+      {/* Advisor */}
       {advisorOpen && (
-        <div className="fixed bottom-0 right-0 top-0 w-[400px] z-50">
+        <div className="fixed bottom-0 right-0 top-0 w-[400px] z-50 border-l-2 border-inkNavy shadow-2xl">
           <GeminiAdvisor
             onSend={handleAdvisorSend}
             messages={advisorMessages}

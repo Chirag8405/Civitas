@@ -129,7 +129,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
               threshold: "BLOCK_MEDIUM_AND_ABOVE",
             },
             {
-              category: "HARM_CATEGORY_SEXUAL_CONTENT",
+              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
               threshold: "BLOCK_MEDIUM_AND_ABOVE",
             },
             {

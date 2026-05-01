@@ -1,5 +1,5 @@
 import { withAuth } from "next-auth/middleware";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 export const middleware = withAuth(
   function middleware(req: NextRequest) {
@@ -10,16 +10,20 @@ export const middleware = withAuth(
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl;
 
-        // Authenticated users hitting /setup should go to /dashboard instead
-        // (handled via redirect in the middleware function above — but since
-        // withAuth can't redirect, we just gate: always allow /setup access,
-        // and the page itself handles the phase-based onboarding flow)
+        // /setup (step 1-3 onboarding) is always accessible to handle the landing flow
         if (pathname === "/setup") {
           return true;
         }
 
-        // Require token for all dashboard routes
-        if (pathname.startsWith("/dashboard") || pathname.startsWith("/calendar") || pathname.startsWith("/ballot") || pathname.startsWith("/polling")) {
+        // Require token for all dashboard + Act sub-pages
+        if (
+          pathname.startsWith("/dashboard") ||
+          pathname.startsWith("/calendar") ||
+          pathname.startsWith("/ballot") ||
+          pathname.startsWith("/polling") ||
+          pathname.startsWith("/setup/map") ||
+          pathname.startsWith("/setup/voter-roll")
+        ) {
           return !!token;
         }
 
