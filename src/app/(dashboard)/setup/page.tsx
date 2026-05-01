@@ -3,10 +3,10 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSimulationStore } from "@/store/simulation.store";
-import PageHeader from "@/components/layout/PageHeader";
-import Sidebar from "@/components/layout/Sidebar";
-import OfficialCard from "@/components/ui/OfficialCard";
-import FormField from "@/components/ui/FormField";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { OfficialCard } from "@/components/ui/OfficialCard";
+import { FormField } from "@/components/ui/FormField";
 import { cn } from "@/lib/utils";
 
 const COUNTRIES = [
