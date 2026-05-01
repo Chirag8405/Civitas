@@ -4,6 +4,8 @@ import * as React from "react";
 import { useEffect, useState, useMemo } from "react";
 import { collection, getDocs, getFirestore, query } from "firebase/firestore";
 import { motion } from "framer-motion";
+import confetti from "canvas-confetti";
+import { useRouter } from "next/navigation";
 
 import { useSimulationStore } from "@/store/simulation.store";
 import { firebaseApp } from "@/lib/firebase";
@@ -23,6 +25,8 @@ export default function ResultsPage() {
   const [loading, setLoading] = useState(results.votes?.length === 0);
   const [isCertifying, setIsCertifying] = useState(false);
   const [certified, setCertified] = useState(results.certified);
+  const [sheetUrl, setSheetUrl] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     // If votes aren't in Zustand, fetch from Firestore
@@ -83,6 +87,7 @@ export default function ResultsPage() {
         }),
       });
       const sheetData = await sheetRes.json();
+      setSheetUrl(sheetData.sheetUrl);
 
       // Generate Slides
       const slideRes = await fetch("/api/google/slides", {
@@ -95,6 +100,32 @@ export default function ResultsPage() {
         }),
       });
       const slideData = await slideRes.json();
+
+      // Confetti effect
+      const duration = 3 * 1000;
+      const end = Date.now() + duration;
+
+      const frame = () => {
+        confetti({
+          particleCount: 5,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+          colors: ["#F5F0E8", "#1A1A2E", "#C0392B"]
+        });
+        confetti({
+          particleCount: 5,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+          colors: ["#F5F0E8", "#1A1A2E", "#C0392B"]
+        });
+
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      };
+      frame();
 
       setCertified(true);
       updateResults({ certified: true, slidesUrl: slideData.slidesUrl });
@@ -110,26 +141,82 @@ export default function ResultsPage() {
     return <div className="p-10 font-mono text-inkNavy">Tabulating final results...</div>;
   }
 
+  if (certified) {
+    return (
+      <div className="flex flex-col items-center justify-start min-h-screen bg-paperCream p-12 text-center gap-10 relative overflow-y-auto w-full">
+        <h1 
+          style={{ fontFamily: 'var(--font-display)' }} 
+          className="text-5xl md:text-6xl font-bold text-inkNavy mt-8"
+        >
+          ELECTION DECLARED
+        </h1>
+        
+        {winner && (
+          <div className="flex flex-col items-center gap-4 z-10">
+            <h2 
+              style={{ fontFamily: 'var(--font-display)' }} 
+              className="text-4xl md:text-5xl font-bold text-inkNavy border-b-4 border-govGold pb-2"
+            >
+              {winner.name}
+            </h2>
+            <p className="font-mono text-xl text-midGray uppercase tracking-widest">{winner.party}</p>
+          </div>
+        )}
+
+        <motion.div
+          initial={{ scale: 3, opacity: 0, rotate: -15 }}
+          animate={{ scale: 1, opacity: 1, rotate: -2 }}
+          transition={{ type: "spring", stiffness: 200, damping: 15 }}
+          className="z-10 my-4"
+        >
+          <div className="scale-150 origin-center">
+            <StampBadge variant="CERTIFIED" text="ELECTION CERTIFIED" />
+          </div>
+        </motion.div>
+
+        {results.slidesUrl && (
+          <div className="w-full max-w-4xl aspect-video border-4 border-inkNavy shadow-xl z-10 bg-formWhite">
+            <iframe 
+              src={results.slidesUrl.replace("/edit", "/embed")} 
+              className="w-full h-full"
+              frameBorder="0"
+              allowFullScreen
+            />
+          </div>
+        )}
+
+        <div className="flex gap-6 z-10 mt-8 pb-16">
+          {sheetUrl && (
+            <a 
+              href={sheetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-8 py-4 bg-inkNavy text-formWhite font-mono font-bold text-lg uppercase tracking-widest transition-colors hover:bg-gray-800"
+            >
+              Download Results →
+            </a>
+          )}
+          <button
+            onClick={() => {
+              useSimulationStore.getState().resetSimulation();
+              router.push("/dashboard");
+            }}
+            className="px-8 py-4 bg-govGold text-inkNavy font-mono font-bold text-lg uppercase tracking-widest transition-colors hover:bg-yellow-600"
+          >
+            Start New Election →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-paperCream flex-col overflow-y-auto relative">
       <div className="max-w-4xl mx-auto w-full p-10 flex flex-col gap-10">
         <PageHeader 
           title="OFFICIAL ELECTION RESULTS" 
           subtitle={constituency.name.toUpperCase()}
-          badge={certified ? { variant: "CERTIFIED", text: "ELECTION CERTIFIED" } : undefined}
         />
-
-        {certified && (
-          <div className="flex justify-center pointer-events-none absolute left-1/2 top-1/4 -translate-x-1/2 z-50">
-             <motion.div
-               initial={{ scale: 3, opacity: 0, rotate: -15 }}
-               animate={{ scale: 1, opacity: 1, rotate: -2 }}
-               transition={{ type: "spring", stiffness: 200, damping: 15 }}
-             >
-               <StampBadge variant="CERTIFIED" text="ELECTION CERTIFIED" />
-             </motion.div>
-          </div>
-        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
           <OfficialCard title="Turnout" className="flex flex-col items-center justify-center p-8">
