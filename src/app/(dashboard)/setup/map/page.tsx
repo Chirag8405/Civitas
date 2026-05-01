@@ -408,7 +408,7 @@ export default function MapPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex h-screen overflow-hidden bg-paperCream">
+    <div className="relative flex h-screen overflow-hidden bg-paperCream">
       {/* ── Left sidebar ─────────────────────────────────────────────────── */}
       <aside
         className="flex w-60 shrink-0 flex-col overflow-y-auto border-r-2 border-inkNavy bg-paperCream"
@@ -645,7 +645,7 @@ export default function MapPage() {
 
       {/* ── Gemini Advisor panel ──────────────────────────────────────────── */}
       {advisorOpen && (
-        <div className="fixed bottom-0 right-0 top-0 w-[400px] z-50 border-l-2 border-inkNavy">
+        <div className="absolute bottom-0 right-0 top-0 w-[400px] z-50 border-l-2 border-inkNavy">
           <GeminiAdvisor
             onSend={handleAdvisorSend}
             messages={advisorMessages}
