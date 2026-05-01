@@ -64,7 +64,7 @@ export function GeminiAdvisor({ onSend, messages, loading }: GeminiAdvisorProps)
 						type="submit"
 						className="whitespace-nowrap rounded-none bg-inkNavy px-4 py-2 text-[12px] font-mono uppercase tracking-[0.12em] text-formWhite"
 					>
-						SUBMIT QUERY ->
+						SUBMIT QUERY →
 					</button>
 				</div>
 			</form>

@@ -28,29 +28,34 @@ const rotationClass = (rotation: StampBadgeProps["rotate"]) => {
 };
 
 export function StampBadge({ variant, text, rotate }: StampBadgeProps) {
-	const rotation = React.useMemo<StampBadgeProps["rotate"]>(() => {
-		if (rotate !== undefined) return rotate;
-		return rotationOptions[Math.floor(Math.random() * rotationOptions.length)];
-	}, [rotate]);
+  const rotationMap: Record<StampBadgeVariant, StampBadgeProps["rotate"]> = {
+    CERTIFIED: -1,
+    PENDING: 1,
+    DISPUTED: -2,
+    REJECTED: 2,
+    CLASSIFIED: 0,
+  };
 
-	const variantClasses = {
-		CERTIFIED: "border-govGold text-govGold",
-		PENDING: "border-inkNavy text-inkNavy",
-		DISPUTED: "border-officialRed text-officialRed ink-bleed",
-		REJECTED: "border-officialRed text-officialRed ink-bleed",
-		CLASSIFIED: "border-midGray text-midGray",
-	}[variant];
+  const rotation = rotate ?? rotationMap[variant];
 
-	return (
-		<span
-			className={cn(
-				"inline-block border-2 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.15em]",
-				"rounded-none",
-				rotationClass(rotation),
-				variantClasses
-			)}
-		>
-			{text ?? variant}
-		</span>
-	);
+  const variantClasses = {
+    CERTIFIED: "border-govGold text-govGold",
+    PENDING: "border-inkNavy text-inkNavy",
+    DISPUTED: "border-officialRed text-officialRed ink-bleed",
+    REJECTED: "border-officialRed text-officialRed ink-bleed",
+    CLASSIFIED: "border-midGray text-midGray",
+  }[variant];
+
+  return (
+    <span
+      className={cn(
+        "inline-block border-2 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.15em]",
+        "rounded-none",
+        rotationClass(rotation),
+        variantClasses
+      )}
+    >
+      {text ?? variant}
+    </span>
+  );
 }
