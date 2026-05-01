@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Loader } from "@googlemaps/js-api-loader";
 
 import type { LatLng, PollingBooth, Zone } from "@/types";
 
@@ -51,10 +50,10 @@ const ballotBoxSvg =
   "data:image/svg+xml;charset=UTF-8," +
   encodeURIComponent(
     "<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36'>" +
-      "<rect x='6' y='10' width='24' height='18' fill='#F5F0E8' stroke='#1A1A2E' stroke-width='2'/>" +
-      "<rect x='10' y='6' width='16' height='6' fill='#F5F0E8' stroke='#1A1A2E' stroke-width='2'/>" +
-      "<rect x='12' y='18' width='12' height='6' fill='#C0392B'/>" +
-      "</svg>"
+    "<rect x='6' y='10' width='24' height='18' fill='#F5F0E8' stroke='#1A1A2E' stroke-width='2'/>" +
+    "<rect x='10' y='6' width='16' height='6' fill='#F5F0E8' stroke='#1A1A2E' stroke-width='2'/>" +
+    "<rect x='12' y='18' width='12' height='6' fill='#C0392B'/>" +
+    "</svg>"
   );
 
 const getCenter = (path: LatLng[]) => {
@@ -99,15 +98,25 @@ export function MapConstituency({
     }
 
     let isMounted = true;
-    import("@googlemaps/js-api-loader").then(({ setOptions, importLibrary }) => {
-      setOptions({ key: apiKey, v: "weekly" });
-      Promise.all([
-        importLibrary("maps"),
-      ]).then(() => {
-        if (!isMounted || !mapNode.current) return;
+    (window as any).__googleMapsLoaderPromise ??= (async () => {
+      await (globalThis as any).google?.maps?.importLibrary?.("maps").catch(() => null);
+      if (!(window as any).google?.maps) {
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&v=weekly&libraries=maps`;
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error("Maps failed to load"));
+          document.head.appendChild(script);
+        });
+      }
+    })();
 
-        const g = (window as any).google;
-        const map = new g.maps.Map(mapNode.current, {
+    (window as any).__googleMapsLoaderPromise.then(() => {
+      if (!isMounted || !mapNode.current) return;
+
+      const g = (window as any).google;
+      const map = new g.maps.Map(mapNode.current, {
         center: { lat: 20, lng: 0 },
         zoom: 3,
         styles: monochromeStyles,
@@ -146,9 +155,10 @@ export function MapConstituency({
       map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(controls);
 
       // Manual polygon drawing (replacing DrawingManager)
+      const pathObj = new g.maps.MVCArray();
       const boundaryPolygon = new g.maps.Polygon({
         map: map,
-        paths: [],
+        paths: [pathObj],
         fillColor: "#C0392B",
         fillOpacity: 0.08,
         strokeColor: "#C0392B",
@@ -164,27 +174,25 @@ export function MapConstituency({
         onBoundaryChange?.(pts);
       };
 
-      const pathObj = boundaryPolygon.getPath();
       g.maps.event.addListener(pathObj, "set_at", updateBoundary);
       g.maps.event.addListener(pathObj, "insert_at", updateBoundary);
       g.maps.event.addListener(pathObj, "remove_at", updateBoundary);
 
-      map.addListener("click", (event: any) => {
+      const handleMapClick = (event: any) => {
         if (!event.latLng) return;
         const loc = { lat: event.latLng.lat(), lng: event.latLng.lng() };
-        
-        // Wait, MapConstituency isn't primarily for editing anymore in this component version?
-        // Actually, if onBoothPlace is passed, maybe it's booth mode?
-        // We'll mimic the logic: if there's onBoothPlace, it's booth mode, else boundary mode.
-        // But wait, the original logic always fired onBoothPlace on map click, and the drawing manager handled polygon drawing!
+
         if (onBoothPlace) {
           onBoothPlace(loc);
         } else if (onBoundaryChange) {
           boundaryPolygon.getPath().push(event.latLng);
           updateBoundary();
         }
-      });
-      
+      };
+
+      map.addListener("click", handleMapClick);
+      g.maps.event.addListener(boundaryPolygon, "click", handleMapClick);
+
       // Allow right-click on polygon vertex to remove it
       g.maps.event.addListener(boundaryPolygon, "rightclick", (ev: any) => {
         if (ev.vertex != null && !onBoothPlace) {
@@ -194,7 +202,6 @@ export function MapConstituency({
       });
 
       setIsReady(true);
-      });
     });
 
     return () => {

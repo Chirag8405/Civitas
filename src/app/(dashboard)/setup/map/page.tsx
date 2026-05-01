@@ -52,8 +52,8 @@ function haversineKm(a: LatLng, b: LatLng) {
   const h =
     Math.sin(dLat / 2) ** 2 +
     Math.cos((a.lat * Math.PI) / 180) *
-      Math.cos((b.lat * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2;
+    Math.cos((b.lat * Math.PI) / 180) *
+    Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.asin(Math.sqrt(h));
 }
 
@@ -108,127 +108,163 @@ export default function MapPage() {
     booths.length >= 3 &&
     activeWarnings.length === 0;
 
+  const boothModeRef = React.useRef(boothMode);
+  React.useEffect(() => { boothModeRef.current = boothMode; }, [boothMode]);
+
   // ── Google Maps init ───────────────────────────────────────────────────────
   React.useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
     if (!apiKey) { setMapMissing(true); return; }
 
     let mounted = true;
-    import("@googlemaps/js-api-loader").then(({ setOptions, importLibrary }) => {
-      setOptions({ key: apiKey, v: "weekly" });
-      Promise.all([
-        importLibrary("maps"),
-      ]).then(() => {
-        if (!mounted || !mapNodeRef.current) return;
-        const g = (window as any).google;
-
-        const map = new g.maps.Map(mapNodeRef.current, {
-          center: constituency.center ?? { lat: 20, lng: 78 },
-          zoom: constituency.center ? 14 : 12,
-          styles: MONOCHROME_STYLES,
-          disableDefaultUI: true,
-          backgroundColor: "#F5F0E8",
+    (window as any).__googleMapsLoaderPromise ??= (async () => {
+      await (globalThis as any).google?.maps?.importLibrary?.("maps").catch(() => null);
+      if (!(window as any).google?.maps) {
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&v=weekly&libraries=maps`;
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error("Maps failed to load"));
+          document.head.appendChild(script);
         });
-        mapRef.current = map;
+      }
+    })();
 
-        // Auto-center via Geocoding if not already centered
-        if (!constituency.center && constituency.name) {
-          const geocoder = new g.maps.Geocoder();
-          geocoder.geocode(
-            { address: `${constituency.name}, ${constituency.country}` },
-            (results: any, status: any) => {
-              if (status === "OK" && results?.[0]?.geometry?.location) {
-                const loc = results[0].geometry.location;
-                map.setCenter(loc);
-                map.setZoom(14);
-                updateConstituency({ center: { lat: loc.lat(), lng: loc.lng() } });
-              } else {
-                console.warn("Geocoding failed:", status);
-              }
-            }
-          );
-        }
+    (window as any).__googleMapsLoaderPromise.then(() => {
+      if (!mounted || !mapNodeRef.current) return;
+      const g = (window as any).google;
 
-        // Custom zoom controls
-        const zoomDiv = document.createElement("div");
-        zoomDiv.style.cssText = "display:flex;flex-direction:column;gap:4px;margin:8px;";
-        ["＋", "－"].forEach((label, i) => {
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.textContent = label;
-          btn.style.cssText =
-            "width:36px;height:36px;border:2px solid #1A1A2E;background:#F5F0E8;font-size:16px;cursor:pointer;";
-          btn.addEventListener("click", () => {
-            const z = map.getZoom() ?? 12;
-            map.setZoom(i === 0 ? z + 1 : z - 1);
-          });
-          zoomDiv.appendChild(btn);
-        });
-        map.controls[g.maps.ControlPosition.RIGHT_BOTTOM].push(zoomDiv);
-
-        // Manual polygon drawing (replacing DrawingManager)
-        const boundaryPolygon = new g.maps.Polygon({
-          map: map,
-          paths: [],
-          fillColor: "#C0392B",
-          fillOpacity: 0.08,
-          strokeColor: "#C0392B",
-          strokeWeight: 3,
-          editable: true,
-        });
-        boundaryPolygonRef.current = boundaryPolygon;
-
-        const updateBoundary = () => {
-          const path = boundaryPolygon.getPath();
-          if (!path) return;
-          const pts: LatLng[] = path.getArray().map((pt: any) => ({ lat: pt.lat(), lng: pt.lng() }));
-          setBoundary(pts);
-        };
-
-        const pathObj = boundaryPolygon.getPath();
-        g.maps.event.addListener(pathObj, "set_at", updateBoundary);
-        g.maps.event.addListener(pathObj, "insert_at", updateBoundary);
-        g.maps.event.addListener(pathObj, "remove_at", updateBoundary);
-
-        map.addListener("click", (ev: any) => {
-          if (!ev.latLng) return;
-          const loc: LatLng = { lat: ev.latLng.lat(), lng: ev.latLng.lng() };
-          
-          if (boothModeRef.current) {
-            handleBoothPlace(loc);
-          } else {
-            // Draw mode: add vertex
-            boundaryPolygon.getPath().push(ev.latLng);
-            updateBoundary();
-          }
-        });
-
-        // Allow right-click on polygon vertex to remove it
-        g.maps.event.addListener(boundaryPolygon, "rightclick", (ev: any) => {
-          if (ev.vertex != null && !boothModeRef.current) {
-            boundaryPolygon.getPath().removeAt(ev.vertex);
-            updateBoundary();
-          }
-        });
-
-        setMapReady(true);
+      const map = new g.maps.Map(mapNodeRef.current, {
+        center: constituency.center ?? { lat: 20, lng: 78 },
+        zoom: constituency.center ? 14 : 12,
+        styles: MONOCHROME_STYLES,
+        disableDefaultUI: true,
+        backgroundColor: "#F5F0E8",
       });
+      mapRef.current = map;
+
+      // Auto-center via Geocoding if not already centered
+      if (!constituency.center && constituency.name) {
+        const geocoder = new g.maps.Geocoder();
+        geocoder.geocode(
+          { address: `${constituency.name}, ${constituency.country}` },
+          (results: any, status: any) => {
+            if (status === "OK" && results?.[0]?.geometry?.location) {
+              const loc = results[0].geometry.location;
+              map.setCenter(loc);
+              map.setZoom(14);
+              updateConstituency({ center: { lat: loc.lat(), lng: loc.lng() } });
+            } else {
+              console.warn("Geocoding failed:", status);
+            }
+          }
+        );
+      }
+
+      // Custom zoom controls
+      const zoomDiv = document.createElement("div");
+      zoomDiv.style.cssText = "display:flex;flex-direction:column;gap:4px;margin:8px;";
+      ["＋", "－"].forEach((label, i) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = label;
+        btn.style.cssText =
+          "width:36px;height:36px;border:2px solid #1A1A2E;background:#F5F0E8;font-size:16px;cursor:pointer;";
+        btn.addEventListener("click", () => {
+          const z = map.getZoom() ?? 12;
+          map.setZoom(i === 0 ? z + 1 : z - 1);
+        });
+        zoomDiv.appendChild(btn);
+      });
+      map.controls[g.maps.ControlPosition.RIGHT_BOTTOM].push(zoomDiv);
+
+      // Manual polygon drawing
+      const pathObj = new g.maps.MVCArray();
+      const boundaryPolygon = new g.maps.Polygon({
+        map: map,
+        paths: [pathObj],
+        fillColor: "#C0392B",
+        fillOpacity: 0.08,
+        strokeColor: "#C0392B",
+        strokeWeight: 3,
+        editable: true,
+      });
+      boundaryPolygonRef.current = boundaryPolygon;
+
+      const updateBoundary = () => {
+        const path = boundaryPolygon.getPath();
+        if (!path) return;
+        const pts: LatLng[] = path.getArray().map((pt: any) => ({ lat: pt.lat(), lng: pt.lng() }));
+        setBoundary(pts);
+      };
+
+      g.maps.event.addListener(pathObj, "set_at", updateBoundary);
+      g.maps.event.addListener(pathObj, "insert_at", updateBoundary);
+      g.maps.event.addListener(pathObj, "remove_at", updateBoundary);
+
+      const handleMapClick = (ev: any) => {
+        if (!ev.latLng) return;
+        const loc: LatLng = { lat: ev.latLng.lat(), lng: ev.latLng.lng() };
+
+        if (boothModeRef.current) {
+          handleBoothPlaceRef.current(loc);
+        } else {
+          // Draw mode: add vertex
+          boundaryPolygon.getPath().push(ev.latLng);
+          updateBoundary();
+        }
+      };
+
+      map.setOptions({ draggableCursor: 'crosshair', gestureHandling: 'greedy' });
+      map.addListener("click", handleMapClick);
+      g.maps.event.addListener(boundaryPolygon, "click", handleMapClick);
+
+      // Right-click on map pops the last vertex
+      map.addListener("rightclick", () => {
+        if (!boothModeRef.current) {
+          const path = boundaryPolygon.getPath();
+          if (path && path.getLength() > 0) {
+            path.pop();
+            updateBoundary();
+          }
+        }
+      });
+
+      // Right-click on polygon removes clicked vertex or pops last vertex
+      g.maps.event.addListener(boundaryPolygon, "rightclick", (ev: any) => {
+        if (!boothModeRef.current) {
+          if (ev.vertex != null) {
+            boundaryPolygon.getPath().removeAt(ev.vertex);
+          } else {
+            const path = boundaryPolygon.getPath();
+            if (path && path.getLength() > 0) {
+              path.pop();
+            }
+          }
+          updateBoundary();
+        }
+      });
+      setMapReady(true);
     });
     return () => { mounted = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Ref forwarding for boothMode (closure capture fix)
-  const boothModeRef = React.useRef(boothMode);
-  React.useEffect(() => { boothModeRef.current = boothMode; }, [boothMode]);
+  // Ref forwarding for boothMode and handleBoothPlace (closure capture fix)
+  //const boothModeRef = React.useRef(boothMode);
+  //React.useEffect(() => { boothModeRef.current = boothMode; }, [boothMode]);
+
+
 
   // ── Place a booth ──────────────────────────────────────────────────────────
   const handleBoothPlace = React.useCallback(
     (loc: LatLng) => {
-      if (booths.length >= 3) return;
+      const currentBooths = booths;
+      if (currentBooths.length >= 3) return;
       const g = (window as any).google;
       const id = `booth-${Date.now()}`;
-      const newBooth: PollingBooth = { id, name: `Booth ${booths.length + 1}`, location: loc };
+      const newBooth: PollingBooth = { id, name: `Booth ${currentBooths.length + 1}`, location: loc };
 
       setBooths((prev) => {
         const next = [...prev, newBooth];
@@ -261,6 +297,11 @@ export default function MapPage() {
     },
     [booths, showRadius]
   );
+
+  const handleBoothPlaceRef = React.useRef<any>(null);
+  React.useEffect(() => {
+    handleBoothPlaceRef.current = handleBoothPlace;
+  }, [handleBoothPlace]);
 
   // ── Toggle radius circles ──────────────────────────────────────────────────
   React.useEffect(() => {
@@ -323,15 +364,9 @@ export default function MapPage() {
           text: data.content ?? data.error ?? "No advisory available.",
         };
         setAdvisorMessages((prev) => [...prev, msg]);
-        // Extract any flags as sidebar warnings
-        if (data.content?.toLowerCase().includes("wheelchair") || data.content?.toLowerCase().includes("accessible")) {
-          setWarnings((prev) => [
-            ...prev.filter((w) => !w.startsWith("ACCESSIBILITY:")),
-            "ACCESSIBILITY: Review wheelchair booth requirements in the advisory panel.",
-          ]);
-        }
+
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setAdvisorLoading(false));
     // Run only once per boundary completion
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -504,21 +539,7 @@ export default function MapPage() {
                 <span className="font-mono text-[10px] text-midGray">Show 1.2 km radius</span>
               </div>
 
-              <button
-                id="toggle-booth-mode"
-                onClick={() => setBoothMode((v) => !v)}
-                disabled={booths.length >= 3}
-                className={cn(
-                  "w-full border-2 py-1.5 font-mono text-[10px] uppercase tracking-widest transition-all active:scale-95",
-                  booths.length >= 3
-                    ? "border-ruleGray text-midGray cursor-not-allowed"
-                    : boothMode
-                    ? "border-officialRed bg-officialRed text-formWhite"
-                    : "border-inkNavy text-inkNavy hover:bg-govGold"
-                )}
-              >
-                {boothMode ? "Click map to place →" : "Activate booth mode"}
-              </button>
+
 
               {booths.length > 0 && (
                 <button
@@ -609,7 +630,7 @@ export default function MapPage() {
       </aside>
 
       {/* ── Map area ─────────────────────────────────────────────────────── */}
-      <div 
+      <div
         className={cn(
           "flex-1 relative transition-[margin] duration-200 ease-in-out",
           advisorOpen ? "mr-[400px]" : "mr-0"
@@ -626,12 +647,35 @@ export default function MapPage() {
           <div ref={mapNodeRef} className="h-full w-full" aria-label="Constituency map" />
         )}
 
-        {/* Booth mode overlay hint */}
-        {boothMode && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-inkNavy text-formWhite font-mono text-xs px-4 py-2 border-2 border-officialRed pointer-events-none">
-            BOOTH MODE — Click on the map to place Booth {booths.length + 1}
+        {/* Mode Toggle Overlay */}
+        <div className="absolute top-4 left-4 z-10 flex flex-col gap-1">
+          <div className="flex font-mono text-[10px] font-bold tracking-widest uppercase cursor-pointer border-2 border-inkNavy overflow-hidden shadow-sm">
+            <button
+              onClick={() => setBoothMode(false)}
+              className={cn(
+                "px-4 py-2 transition-colors",
+                !boothMode ? "bg-inkNavy text-formWhite" : "bg-formWhite text-inkNavy hover:bg-paperCream"
+              )}
+            >
+              DRAW BOUNDARY
+            </button>
+            <div className="w-0.5 bg-inkNavy" />
+            <button
+              onClick={() => setBoothMode(true)}
+              disabled={booths.length >= 3}
+              className={cn(
+                "px-4 py-2 transition-colors",
+                boothMode ? "bg-officialRed text-formWhite" : "bg-formWhite text-inkNavy hover:bg-paperCream",
+                booths.length >= 3 && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              PLACE BOOTH
+            </button>
           </div>
-        )}
+          <span className="font-mono text-[10px] text-midGray bg-formWhite/80 px-1 w-fit">
+            Left-click to add points · Right-click to remove last point
+          </span>
+        </div>
 
         {/* Boundary status pill */}
         <div className="absolute bottom-4 left-4 z-10 bg-formWhite border-2 border-inkNavy px-3 py-1.5">
