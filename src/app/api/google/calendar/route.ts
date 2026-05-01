@@ -32,7 +32,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         electoralSystem: string;
       };
 
-      const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+      const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
         return NextResponse.json(
           { error: "GOOGLE_GEMINI_API_KEY not set" },
@@ -55,7 +55,7 @@ Return ONLY a valid JSON array (no markdown, no code fences) of objects with exa
 Use realistic dates spread over 45 days from today. First milestone should be "past", one "current", rest "future". Cite the specific legislation (Act / regulation) in descriptions where possible.`;
 
       const geminiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

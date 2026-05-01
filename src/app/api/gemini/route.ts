@@ -79,7 +79,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // Get API key
-    const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       console.error("Missing GOOGLE_GEMINI_API_KEY");
       return NextResponse.json(

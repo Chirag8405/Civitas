@@ -67,7 +67,7 @@ Use Google Search to ground your answer in current, official sources. Return onl
   };
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -110,7 +110,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
 
     // Attempt real Gemini Search Grounding call
     if (apiKey) {
