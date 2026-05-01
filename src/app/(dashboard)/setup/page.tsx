@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { OfficialCard } from "@/components/ui/OfficialCard";
 import { FormField } from "@/components/ui/FormField";
 import { cn } from "@/lib/utils";
+import { StampBadge } from "@/components/ui/StampBadge";
 
 const COUNTRIES = [
   { code: "IN", name: "India", system: "FPTP" },
@@ -20,7 +21,7 @@ type SetupStep = "country" | "neighbourhood" | "system";
 
 export default function SetupPage() {
   const router = useRouter();
-  const { constituency, updateConstituency } = useSimulationStore();
+  const { constituency, updateConstituency, setPhase } = useSimulationStore();
   const [step, setStep] = useState<SetupStep>("country");
   const [selectedCountry, setSelectedCountry] = useState(
     constituency.country || ""
@@ -89,6 +90,8 @@ export default function SetupPage() {
         name: neighbourhood,
         electoralSystemInfo: systemInfo,
       });
+      // Advance phase so middleware/dashboard never bounces back to /setup
+      setPhase("calendar");
       router.push("/dashboard");
     }
   };
@@ -96,7 +99,7 @@ export default function SetupPage() {
   return (
     <div className="flex min-h-screen bg-paperCream">
       <Sidebar
-        active="setup"
+        active="overview"
         lockedActs={[]}
         userName="Administrator"
         userRole="Setup"
@@ -108,13 +111,12 @@ export default function SetupPage() {
         <PageHeader
           title="Electoral Setup"
           subtitle="Configure your constituency and election parameters"
-          badge={{ label: "SETUP", variant: "default" }}
         />
 
         <div className="mt-12 max-w-2xl">
           {/* Step 1: Country Selection */}
           {step === "country" && (
-            <OfficialCard className="p-8">
+            <OfficialCard title="Step 1 — Select Jurisdiction">
               <h2 className="font-serif text-2xl font-bold text-inkNavy mb-6">
                 Select Jurisdiction
               </h2>
@@ -159,7 +161,7 @@ export default function SetupPage() {
 
           {/* Step 2: Neighbourhood Input */}
           {step === "neighbourhood" && (
-            <OfficialCard className="p-8">
+            <OfficialCard title="Step 2 — Define Your Constituency">
               <h2 className="font-serif text-2xl font-bold text-inkNavy mb-2">
                 Define Your Neighbourhood
               </h2>
@@ -206,7 +208,7 @@ export default function SetupPage() {
 
           {/* Step 3: System Confirmation */}
           {step === "system" && systemInfo && (
-            <OfficialCard className="p-8">
+            <OfficialCard title="Step 3 — Electoral System Confirmed">
               <h2 className="font-serif text-2xl font-bold text-inkNavy mb-6">
                 Electoral System Confirmed
               </h2>

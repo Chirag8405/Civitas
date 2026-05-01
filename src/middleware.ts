@@ -1,22 +1,25 @@
 import { withAuth } from "next-auth/middleware";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export const middleware = withAuth(
   function middleware(req: NextRequest) {
-    // Middleware runs for all protected routes
-    // Auth check is handled by withAuth
-    return undefined; // Allow request to proceed
+    return undefined; // Allow request to proceed (auth already checked below)
   },
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Allow access to /setup even without full session
-        if (req.nextUrl.pathname === "/setup") {
+        const { pathname } = req.nextUrl;
+
+        // Authenticated users hitting /setup should go to /dashboard instead
+        // (handled via redirect in the middleware function above — but since
+        // withAuth can't redirect, we just gate: always allow /setup access,
+        // and the page itself handles the phase-based onboarding flow)
+        if (pathname === "/setup") {
           return true;
         }
 
-        // Require token for /dashboard routes
-        if (req.nextUrl.pathname.startsWith("/dashboard")) {
+        // Require token for all dashboard routes
+        if (pathname.startsWith("/dashboard") || pathname.startsWith("/calendar") || pathname.startsWith("/ballot") || pathname.startsWith("/polling")) {
           return !!token;
         }
 
@@ -31,14 +34,6 @@ export const middleware = withAuth(
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public (public files)
-     */
     "/((?!api|_next/static|_next/image|favicon.ico|public).*)",
   ],
 };
