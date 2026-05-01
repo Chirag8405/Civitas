@@ -62,6 +62,11 @@ export interface SimulationState {
   constituency: {
     name: string;
     country: string;
+    electoralSystemInfo?: {
+      system: string;
+      registrationRules: string;
+      boothRequirements: string;
+    };
     bounds: LatLngBounds;
     pollingBooths: PollingBooth[];
     zones: Zone[];
