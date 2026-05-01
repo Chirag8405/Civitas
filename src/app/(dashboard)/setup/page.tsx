@@ -126,13 +126,16 @@ export default function SetupPage() {
                     key={country.code}
                     onClick={() => handleCountrySelect(country.code)}
                     className={cn(
-                      "w-full text-left px-4 py-3 font-mono text-sm transition-colors",
+                      "w-full text-left px-4 py-3 font-mono text-sm transition-all active:scale-95",
                       selectedCountry === country.code
-                        ? "bg-officialRed text-formWhite border-2 border-officialRed"
+                        ? "bg-[#FDF7E3] text-inkNavy border-2 border-transparent border-l-officialRed"
                         : "bg-formWhite text-inkNavy border-2 border-midGray hover:bg-govGold hover:border-govGold"
                     )}
                   >
                     {country.name}
+                    {selectedCountry === country.code && (
+                      <span className="ml-2 text-govGold font-bold">✓</span>
+                    )}
                     <span className="float-right text-xs uppercase tracking-widest">
                       {country.system}
                     </span>
@@ -148,7 +151,7 @@ export default function SetupPage() {
                 onClick={() => setStep("neighbourhood")}
                 disabled={!selectedCountry}
                 className={cn(
-                  "mt-6 px-6 py-3 font-mono text-sm font-bold uppercase tracking-widest transition-colors",
+                  "mt-6 px-6 py-3 font-mono text-sm font-bold uppercase tracking-widest transition-all active:scale-95",
                   selectedCountry
                     ? "bg-govGold text-inkNavy hover:bg-officialRed hover:text-formWhite border-2 border-inkNavy"
                     : "bg-midGray text-ruleGray border-2 border-ruleGray cursor-not-allowed"
@@ -186,7 +189,7 @@ export default function SetupPage() {
               <div className="mt-6 flex gap-3">
                 <button
                   onClick={() => setStep("country")}
-                  className="px-6 py-3 font-mono text-sm font-bold uppercase tracking-widest border-2 border-inkNavy bg-formWhite text-inkNavy hover:bg-ruleGray"
+                  className="px-6 py-3 font-mono text-sm font-bold uppercase tracking-widest border-2 border-inkNavy bg-formWhite text-inkNavy hover:bg-ruleGray transition-all active:scale-95"
                 >
                   Back
                 </button>
@@ -194,13 +197,13 @@ export default function SetupPage() {
                   onClick={fetchElectoralSystemInfo}
                   disabled={loading || !neighbourhood.trim()}
                   className={cn(
-                    "px-6 py-3 font-mono text-sm font-bold uppercase tracking-widest transition-colors flex-1",
+                    "px-6 py-3 font-mono text-sm font-bold uppercase tracking-widest transition-all active:scale-95 flex-1",
                     loading || !neighbourhood.trim()
                       ? "bg-midGray text-ruleGray border-2 border-ruleGray cursor-not-allowed"
                       : "bg-govGold text-inkNavy hover:bg-officialRed hover:text-formWhite border-2 border-inkNavy"
                   )}
                 >
-                  {loading ? "Fetching..." : "Fetch System Info"}
+                  {loading ? "PROCESSING..." : "Fetch System Info"}
                 </button>
               </div>
             </OfficialCard>
@@ -254,13 +257,13 @@ export default function SetupPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setStep("neighbourhood")}
-                  className="flex-1 px-6 py-3 font-mono text-sm font-bold uppercase tracking-widest border-2 border-inkNavy bg-formWhite text-inkNavy hover:bg-ruleGray"
+                  className="flex-1 px-6 py-3 font-mono text-sm font-bold uppercase tracking-widest border-2 border-inkNavy bg-formWhite text-inkNavy hover:bg-ruleGray transition-all active:scale-95"
                 >
                   Back
                 </button>
                 <button
                   onClick={handleConfirmSetup}
-                  className="flex-1 px-6 py-3 font-mono text-sm font-bold uppercase tracking-widest bg-officialRed text-formWhite border-2 border-officialRed hover:bg-govGold hover:text-inkNavy hover:border-govGold transition-colors"
+                  className="flex-1 px-6 py-3 font-mono text-sm font-bold uppercase tracking-widest bg-officialRed text-formWhite border-2 border-officialRed hover:bg-govGold hover:text-inkNavy hover:border-govGold transition-all active:scale-95"
                 >
                   Confirm & Start
                 </button>

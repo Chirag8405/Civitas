@@ -293,7 +293,7 @@ export default function DashboardPage() {
                             handleEnterAct(act.id);
                           }}
                           className={cn(
-                            "px-4 py-2 font-mono text-xs font-bold uppercase tracking-widest border-2 transition-colors",
+                            "px-4 py-2 font-mono text-xs font-bold uppercase tracking-widest border-2 transition-all active:scale-95",
                             isCertified
                               ? "border-govGold text-govGold hover:bg-govGold hover:text-inkNavy"
                               : "bg-officialRed text-formWhite border-officialRed hover:bg-inkNavy hover:border-inkNavy"
@@ -398,7 +398,7 @@ export default function DashboardPage() {
               id="advisor-toggle"
               onClick={() => setAdvisorOpen(!advisorOpen)}
               className={cn(
-                "w-full px-4 py-3 font-mono text-xs font-bold uppercase tracking-widest border-2 transition-colors",
+                "w-full px-4 py-3 font-mono text-xs font-bold uppercase tracking-widest border-2 transition-all active:scale-95",
                 advisorOpen
                   ? "bg-officialRed text-formWhite border-officialRed"
                   : "bg-formWhite text-inkNavy border-inkNavy hover:bg-govGold hover:border-govGold"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSimulationStore } from "@/store/simulation.store";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -21,10 +21,15 @@ export default function CalendarPage() {
   const [synced, setSynced] = useState(!!election.calendarId);
   const [error, setError] = useState("");
 
+  const fetchAttempted = useRef(false);
+
   // ── Auto-generate on first load ────────────────────────────────────────────
   useEffect(() => {
     if (milestones.length > 0) return;
     if (!constituency.country) return;
+    if (fetchAttempted.current) return;
+    
+    fetchAttempted.current = true;
     setGenerating(true);
     fetch("/api/google/calendar", {
       method: "POST",
@@ -47,8 +52,7 @@ export default function CalendarPage() {
       })
       .catch(() => setError("Network error generating timeline."))
       .finally(() => setGenerating(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [constituency.country, milestones.length, updateElection, constituency.electoralSystemInfo?.system]);
 
   // ── Sync to Google Calendar ────────────────────────────────────────────────
   const handleSync = useCallback(async () => {
@@ -212,13 +216,13 @@ export default function CalendarPage() {
                     onClick={handleSync}
                     disabled={syncing || milestones.length === 0}
                     className={cn(
-                      "w-full border-2 py-3 font-mono text-xs font-bold uppercase tracking-widest transition-colors",
+                      "w-full border-2 py-3 font-mono text-xs font-bold uppercase tracking-widest transition-all active:scale-95",
                       syncing || milestones.length === 0
                         ? "border-ruleGray text-midGray cursor-not-allowed"
                         : "border-inkNavy bg-inkNavy text-formWhite hover:bg-officialRed hover:border-officialRed"
                     )}
                   >
-                    {syncing ? "Syncing…" : "Add to My Google Calendar →"}
+                    {syncing ? "PROCESSING..." : "Add to My Google Calendar →"}
                   </button>
                 )}
 
@@ -251,13 +255,13 @@ export default function CalendarPage() {
                 <p className="font-mono text-[10px] text-midGray">Complete calendar sync, then register candidates.</p>
                 <button
                   onClick={() => router.push("/ballot/candidates")}
-                  className="w-full border-2 border-officialRed bg-officialRed py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-formWhite hover:bg-inkNavy hover:border-inkNavy transition-colors"
+                  className="w-full border-2 border-officialRed bg-officialRed py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-formWhite hover:bg-inkNavy hover:border-inkNavy transition-all active:scale-95"
                 >
                   Register Candidates →
                 </button>
                 <button
                   onClick={() => router.push("/dashboard")}
-                  className="w-full border-2 border-inkNavy py-2 font-mono text-xs font-bold uppercase tracking-widest text-inkNavy hover:bg-govGold hover:border-govGold transition-colors"
+                  className="w-full border-2 border-inkNavy py-2 font-mono text-xs font-bold uppercase tracking-widest text-inkNavy hover:bg-govGold hover:border-govGold transition-all active:scale-95"
                 >
                   ← Back to Dashboard
                 </button>

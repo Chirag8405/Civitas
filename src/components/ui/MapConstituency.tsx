@@ -99,16 +99,16 @@ export function MapConstituency({
     }
 
     let isMounted = true;
-    const loader = new Loader({
-      apiKey,
-      version: "weekly",
-      libraries: ["drawing"],
-    });
+    import("@googlemaps/js-api-loader").then(({ setOptions, importLibrary }) => {
+      setOptions({ key: apiKey, v: "weekly" });
+      Promise.all([
+        importLibrary("maps"),
+        importLibrary("drawing"),
+      ]).then(() => {
+        if (!isMounted || !mapNode.current) return;
 
-    loader.load().then(() => {
-      if (!isMounted || !mapNode.current) return;
-
-      const map = new google.maps.Map(mapNode.current, {
+        const g = (window as any).google;
+        const map = new g.maps.Map(mapNode.current, {
         center: { lat: 20, lng: 0 },
         zoom: 3,
         styles: monochromeStyles,
@@ -189,6 +189,7 @@ export function MapConstituency({
       });
 
       setIsReady(true);
+      });
     });
 
     return () => {

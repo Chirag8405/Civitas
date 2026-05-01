@@ -473,7 +473,7 @@ export default function MapPage() {
                 onClick={() => setBoothMode((v) => !v)}
                 disabled={booths.length >= 3}
                 className={cn(
-                  "w-full border-2 py-1.5 font-mono text-[10px] uppercase tracking-widest transition-colors",
+                  "w-full border-2 py-1.5 font-mono text-[10px] uppercase tracking-widest transition-all active:scale-95",
                   booths.length >= 3
                     ? "border-ruleGray text-midGray cursor-not-allowed"
                     : boothMode
@@ -537,13 +537,13 @@ export default function MapPage() {
               onClick={handleValidate}
               disabled={!canValidate || validating}
               className={cn(
-                "w-full border-2 py-2 font-mono text-[10px] font-bold uppercase tracking-widest transition-colors",
+                "w-full border-2 py-2 font-mono text-[10px] font-bold uppercase tracking-widest transition-all active:scale-95",
                 canValidate && !validating
                   ? "border-inkNavy bg-inkNavy text-formWhite hover:bg-officialRed hover:border-officialRed"
                   : "border-ruleGray text-midGray cursor-not-allowed"
               )}
             >
-              {validating ? "Validating…" : "Validate Boundary →"}
+              {validating ? "PROCESSING..." : "Validate Boundary →"}
             </button>
             {!canValidate && (
               <p className="mt-1.5 font-mono text-[9px] text-midGray leading-tight">

@@ -259,7 +259,7 @@ export default function CandidatesPage() {
               <button
                 id="add-candidate"
                 onClick={addCandidate}
-                className="w-full border-2 border-dashed border-inkNavy py-4 font-mono text-sm font-bold uppercase tracking-widest text-inkNavy hover:bg-govGold hover:border-govGold transition-colors"
+                className="w-full border-2 border-dashed border-inkNavy py-4 font-mono text-sm font-bold uppercase tracking-widest text-inkNavy hover:bg-govGold hover:border-govGold transition-all active:scale-95"
               >
                 + Add Candidate
               </button>
@@ -303,20 +303,20 @@ export default function CandidatesPage() {
                 onClick={handleCloseNominations}
                 disabled={!canClose || closing}
                 className={cn(
-                  "w-full border-2 py-3 font-mono text-xs font-bold uppercase tracking-widest transition-colors",
+                  "w-full border-2 py-3 font-mono text-xs font-bold uppercase tracking-widest transition-all active:scale-95",
                   canClose && !closing
                     ? "border-officialRed bg-officialRed text-formWhite hover:bg-inkNavy hover:border-inkNavy"
                     : "border-ruleGray text-midGray cursor-not-allowed"
                 )}
               >
-                {closing ? "Closing…" : "Close Nominations →"}
+                {closing ? "PROCESSING..." : "Close Nominations →"}
               </button>
             )}
 
             {closed && (
               <button
                 onClick={() => router.push("/ballot/design")}
-                className="w-full border-2 border-inkNavy bg-inkNavy py-3 font-mono text-xs font-bold uppercase tracking-widest text-formWhite hover:bg-officialRed hover:border-officialRed transition-colors"
+                className="w-full border-2 border-inkNavy bg-inkNavy py-3 font-mono text-xs font-bold uppercase tracking-widest text-formWhite hover:bg-officialRed hover:border-officialRed transition-all active:scale-95"
               >
                 Design Ballot →
               </button>
@@ -324,7 +324,7 @@ export default function CandidatesPage() {
 
             <button
               onClick={() => router.push("/calendar")}
-              className="w-full border-2 border-inkNavy py-2 font-mono text-xs font-bold uppercase tracking-widest text-inkNavy hover:bg-govGold hover:border-govGold transition-colors"
+              className="w-full border-2 border-inkNavy py-2 font-mono text-xs font-bold uppercase tracking-widest text-inkNavy hover:bg-govGold hover:border-govGold transition-all active:scale-95"
             >
               ← Back to Calendar
             </button>

@@ -11,7 +11,7 @@ export interface FormFieldProps {
 
 export function FormField({ label, error, htmlFor, children }: FormFieldProps) {
 	const field = React.isValidElement(children)
-		? React.cloneElement(children, {
+		? React.cloneElement(children as React.ReactElement<any>, {
 				className: cn(
 					(children.props as { className?: string }).className,
 					error ? "border-officialRed bg-stampRedBg" : null

@@ -431,13 +431,13 @@ Return a JSON array of flag strings (issues only, empty array if none). No markd
                   onClick={handleCreateForm}
                   disabled={creating || candidates.length < 2 || certified}
                   className={cn(
-                    "w-full border-2 py-2.5 font-mono text-xs font-bold uppercase tracking-widest transition-colors",
+                    "w-full border-2 py-2.5 font-mono text-xs font-bold uppercase tracking-widest transition-all active:scale-95",
                     candidates.length >= 2 && !creating && !certified
                       ? "border-inkNavy bg-inkNavy text-formWhite hover:bg-officialRed hover:border-officialRed"
                       : "border-ruleGray text-midGray cursor-not-allowed"
                   )}
                 >
-                  {creating ? "Creating Form…" : "Create Google Form →"}
+                  {creating ? "PROCESSING..." : "Create Google Form →"}
                 </button>
               )}
             </OfficialCard>
@@ -488,7 +488,7 @@ Return a JSON array of flag strings (issues only, empty array if none). No markd
                     : "border-ruleGray text-midGray cursor-not-allowed"
                 )}
               >
-                {reviewing ? "Reviewing…" : "Gemini Review →"}
+                {reviewing ? "PROCESSING..." : "Gemini Review →"}
               </button>
 
               <button
@@ -496,7 +496,7 @@ Return a JSON array of flag strings (issues only, empty array if none). No markd
                 onClick={handleCertify}
                 disabled={!canCertify}
                 className={cn(
-                  "w-full border-2 py-3 font-mono text-xs font-bold uppercase tracking-widest transition-colors",
+                  "w-full border-2 py-3 font-mono text-xs font-bold uppercase tracking-widest transition-all active:scale-95",
                   canCertify
                     ? "border-officialRed bg-officialRed text-formWhite hover:bg-inkNavy hover:border-inkNavy"
                     : "border-ruleGray text-midGray cursor-not-allowed"
@@ -508,7 +508,7 @@ Return a JSON array of flag strings (issues only, empty array if none). No markd
               <button
                 id="ballot-advisor-toggle"
                 onClick={() => setAdvisorOpen((v) => !v)}
-                className="w-full border-2 border-inkNavy py-2 font-mono text-xs font-bold uppercase tracking-widest text-inkNavy hover:bg-govGold hover:border-govGold transition-colors"
+                className="w-full border-2 border-inkNavy py-2 font-mono text-xs font-bold uppercase tracking-widest text-inkNavy hover:bg-govGold hover:border-govGold transition-all active:scale-95"
               >
                 {advisorOpen ? "Close Advisor" : "Consult Advisor"}
               </button>

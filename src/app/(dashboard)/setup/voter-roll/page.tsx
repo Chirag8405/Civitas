@@ -259,7 +259,7 @@ export default function VoterRollPage() {
             onClick={handleCertify}
             disabled={certifying || certified}
             className={cn(
-              "border-2 px-8 py-3 font-mono text-sm font-bold uppercase tracking-widest transition-colors",
+              "border-2 px-8 py-3 font-mono text-sm font-bold uppercase tracking-widest transition-all active:scale-95",
               certified
                 ? "border-govGold bg-govGold text-inkNavy cursor-not-allowed"
                 : certifying
@@ -270,14 +270,14 @@ export default function VoterRollPage() {
             {certified
               ? "✓ Constituency Certified"
               : certifying
-              ? "Certifying…"
+              ? "PROCESSING..."
               : "Certify Constituency →"}
           </button>
 
           <button
             id="voter-roll-advisor-toggle"
             onClick={() => setAdvisorOpen((v) => !v)}
-            className="border-2 border-inkNavy px-6 py-3 font-mono text-sm font-bold uppercase tracking-widest text-inkNavy hover:bg-govGold transition-colors"
+            className="border-2 border-inkNavy px-6 py-3 font-mono text-sm font-bold uppercase tracking-widest text-inkNavy hover:bg-govGold transition-all active:scale-95"
           >
             {advisorOpen ? "Close Advisor" : "Consult Advisor"}
           </button>

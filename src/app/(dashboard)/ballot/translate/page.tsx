@@ -172,13 +172,13 @@ export default function TranslatePage() {
             onClick={handleTranslate}
             disabled={translating}
             className={cn(
-              "border-2 px-4 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest transition-colors",
+              "border-2 px-4 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest transition-all active:scale-95",
               translating
                 ? "border-ruleGray text-midGray cursor-not-allowed"
                 : "border-inkNavy bg-inkNavy text-formWhite hover:bg-officialRed hover:border-officialRed"
             )}
           >
-            {translating ? "Translating…" : `Translate All → ${targetLang.name}`}
+            {translating ? "PROCESSING..." : `Translate All → ${targetLang.name}`}
           </button>
         </div>
 
@@ -242,13 +242,13 @@ export default function TranslatePage() {
                 <div className="flex items-center gap-2 border-t border-ruleGray px-4 py-2">
                   <button
                     onClick={() => setApproval(field.key, "approved")}
-                    className="border-2 border-govGold px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-govGold hover:bg-govGold hover:text-inkNavy transition-colors"
+                    className="border-2 border-govGold px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-govGold hover:bg-govGold hover:text-inkNavy transition-all active:scale-95"
                   >
                     ✓ Approve
                   </button>
                   <button
                     onClick={() => setApproval(field.key, "revision")}
-                    className="border-2 border-officialRed px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-officialRed hover:bg-officialRed hover:text-formWhite transition-colors"
+                    className="border-2 border-officialRed px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-officialRed hover:bg-officialRed hover:text-formWhite transition-all active:scale-95"
                   >
                     ✕ Request Revision
                   </button>
@@ -270,17 +270,17 @@ export default function TranslatePage() {
             onClick={handleCertify}
             disabled={!allApproved || certifying}
             className={cn(
-              "border-2 px-8 py-3 font-mono text-sm font-bold uppercase tracking-widest transition-colors",
+              "border-2 px-8 py-3 font-mono text-sm font-bold uppercase tracking-widest transition-all active:scale-95",
               allApproved && !certifying
                 ? "border-inkNavy bg-inkNavy text-formWhite hover:bg-officialRed hover:border-officialRed"
                 : "border-ruleGray text-midGray cursor-not-allowed"
             )}
           >
-            {certifying ? "Certifying…" : "Certify Translation →"}
+            {certifying ? "PROCESSING..." : "Certify Translation →"}
           </button>
           <button
             onClick={() => router.push("/ballot/design")}
-            className="border-2 border-inkNavy px-6 py-3 font-mono text-sm font-bold uppercase tracking-widest text-inkNavy hover:bg-govGold hover:border-govGold transition-colors"
+            className="border-2 border-inkNavy px-6 py-3 font-mono text-sm font-bold uppercase tracking-widest text-inkNavy hover:bg-govGold hover:border-govGold transition-all active:scale-95"
           >
             ← Back to Design
           </button>
