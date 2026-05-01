@@ -187,7 +187,7 @@ function BallotPreview({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function BallotDesignPage() {
   const router = useRouter();
-  const { constituency, election, updateElection } = useSimulationStore();
+  const { constituency, election, updateElection, setPhase } = useSimulationStore();
 
   const pollingMilestone = election.milestones.find((m) => m.phase === "polling");
   const electionDate = pollingMilestone?.date ?? "TBD";
@@ -215,7 +215,7 @@ export default function BallotDesignPage() {
 
   const sensors = useSensors(useSensor(PointerSensor));
 
-  const activeFlags = flags.filter((f) => !dismissedFlags.has(f));
+  const activeFlags = flags.filter((f) => !f.startsWith("✓") && !dismissedFlags.has(f));
   const canCertify = activeFlags.length === 0 && flags.length > 0 && !certified;
 
   // ── Gemini auto-review ─────────────────────────────────────────────────────
@@ -287,6 +287,7 @@ Return a JSON array of flag strings (issues only, empty array if none). No markd
   const handleCertify = async () => {
     updateElection({ candidates });
     setCertified(true);
+    setPhase("polling");
     await new Promise((r) => setTimeout(r, 600));
     router.push(election.languages.length > 0 ? "/ballot/translate" : "/dashboard");
   };
