@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
-import { GEMINI_SYSTEM_PROMPT } from "@/lib/gemini";
+import { SYSTEM_PROMPT } from "@/lib/gemini";
 
 interface GeminiMessage {
   role: "user" | "assistant";
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // Build context-aware system prompt
-    let systemPrompt = GEMINI_SYSTEM_PROMPT;
+    let systemPrompt = SYSTEM_PROMPT;
     if (context) {
       systemPrompt += `\n\n[CURRENT CONTEXT]\nPhase: ${context.phase}\nConstituency: ${context.constituency}`;
     }
