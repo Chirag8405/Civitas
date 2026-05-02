@@ -21,7 +21,8 @@ export function BallotCounter({
 	const sheetCount = 5;
 	const progress = total > 0 ? Math.min(current / total, 1) : 0;
 	const activeSheets = Math.round(progress * sheetCount);
-	const defaultLabel = `${current} / ${total} VOTES CAST`;
+	const displayLabel = label ?? "VOTES CAST";
+	const displayText = `${current} / ${total} ${displayLabel}`;
 
 	return (
 		<div className={cn("flex flex-col items-center gap-4", className)} aria-live="polite" aria-atomic="true">
@@ -69,7 +70,7 @@ export function BallotCounter({
 				})}
 			</svg>
 			<div className="text-center font-mono text-sm font-bold uppercase tracking-[0.12em] text-inkNavy">
-				{label ?? defaultLabel}
+				{displayText}
 			</div>
 		</div>
 	);

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { collection, onSnapshot, query, getFirestore, updateDoc, doc } from "firebase/firestore";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from "recharts";
@@ -347,12 +347,12 @@ export default function PollingPage() {
           />
         </aside>
 
-      <DisputeModal
-        pendingDispute={pendingDispute}
-        disputeAdvisory={disputeAdvisory}
-        advisoryLoading={advisoryLoading}
-        onRuling={handleRuling}
-      />
+        <DisputeModal
+          pendingDispute={pendingDispute}
+          disputeAdvisory={disputeAdvisory}
+          advisoryLoading={advisoryLoading}
+          onRuling={handleRuling}
+        />
       </div>
     </ErrorBoundary>
   );

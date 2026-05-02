@@ -4,7 +4,6 @@ import { POST } from '../google/sheets/route';
 import { getServerSession } from 'next-auth';
 
 jest.mock('next-auth');
-jest.mock('next-auth/next');
 jest.mock('next/server', () => ({
   NextResponse: {
     json: (body: any, init?: any) => ({
@@ -21,6 +20,10 @@ describe('API /api/google/sheets', () => {
     } as any;
   };
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('returns 401 without session', async () => {
     (getServerSession as jest.Mock).mockResolvedValue(null);
     const res = await POST(mockRequest({ constituencyName: 'Test' }));
@@ -33,11 +36,49 @@ describe('API /api/google/sheets', () => {
     expect(res.status).toBe(400);
   });
 
-  it('returns sheetUrl (null or defined) when session valid', async () => {
+  it('returns mock response when no accessToken', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'test@example.com' } });
-    const res = await POST(mockRequest({ constituencyName: 'Test' }));
+    const res = await POST(mockRequest({ constituencyName: 'Test', zones: [{id:'z1', name:'Z1'}] }));
     const data = await res.json();
-    // It returns { sheetUrl: null, ... } if no accessToken
-    expect(data).toHaveProperty('sheetUrl');
+    expect(data.mock).toBe(true);
+    expect(data.sheetUrl).toBeNull();
+    expect(data.voterCount).toBe(200);
+  });
+
+  it('calls Google Sheets API when accessToken present', async () => {
+    (getServerSession as jest.Mock).mockResolvedValue({ 
+      user: { email: 'test@test.com' },
+      accessToken: 'mock-token'
+    });
+
+    const mockFetch = jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ spreadsheetId: 'sheet123' })
+    } as any);
+
+    const res = await POST(mockRequest({ constituencyName: 'Test' }));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.spreadsheetId).toBe('sheet123');
+    expect(data.sheetUrl).toContain('sheet123');
+    
+    mockFetch.mockRestore();
+  });
+
+  it('returns 500 when Google Sheets creation fails', async () => {
+    (getServerSession as jest.Mock).mockResolvedValue({ 
+      user: { email: 'test@test.com' },
+      accessToken: 'mock-token'
+    });
+
+    const mockFetch = jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: false,
+      json: () => Promise.resolve({ error: 'API Error' })
+    } as any);
+
+    const res = await POST(mockRequest({ constituencyName: 'Test' }));
+    expect(res.status).toBe(500);
+    
+    mockFetch.mockRestore();
   });
 });

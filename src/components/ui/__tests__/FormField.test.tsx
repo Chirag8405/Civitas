@@ -4,41 +4,53 @@ import { render, screen } from '@testing-library/react';
 import { FormField, OfficialInput } from '../FormField';
 
 describe('FormField', () => {
-  it('renders label text correctly', () => {
+  it('renders label and children', () => {
     render(
-      <FormField label="Full Name" id="name">
-        <OfficialInput id="name" />
+      <FormField label="FULL NAME" id="name">
+        <OfficialInput id="name" data-testid="input" />
       </FormField>
     );
-    expect(screen.getByText('Full Name')).toBeInTheDocument();
+    expect(screen.getByText('FULL NAME')).toBeInTheDocument();
+    expect(screen.getByTestId('input')).toBeInTheDocument();
   });
 
-  it('renders error message when error prop passed', () => {
+  it('error message appears when error prop provided', () => {
     render(
-      <FormField label="Label" id="id" error="This field is required">
-        <OfficialInput id="id" />
+      <FormField label="L" id="i" error="ERROR MESSAGE">
+        <OfficialInput id="i" />
       </FormField>
     );
-    expect(screen.getByText('This field is required')).toBeInTheDocument();
+    expect(screen.getByText('ERROR MESSAGE')).toBeInTheDocument();
   });
 
-  it('applies error styles to input when error present', () => {
+  it('no error message when error prop absent', () => {
     render(
-      <FormField label="Label" id="id" error="Error">
-        <OfficialInput id="id" />
+      <FormField label="L" id="i">
+        <OfficialInput id="i" />
+      </FormField>
+    );
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('error applies red border class to input', () => {
+    render(
+      <FormField label="L" id="i" error="E">
+        <OfficialInput id="i" />
       </FormField>
     );
     const input = screen.getByRole('textbox');
     expect(input).toHaveClass('border-officialRed', 'bg-stampRedBg');
   });
 
-  it('label has correct font mono and tracking classes', () => {
-    render(
-      <FormField label="Label" id="id">
-        <OfficialInput id="id" />
-      </FormField>
-    );
-    const label = screen.getByText('Label');
-    expect(label).toHaveClass('font-mono', 'uppercase', 'tracking-[0.12em]');
+  it('label has uppercase tracking class', () => {
+    render(<FormField label="LABEL TEXT" id="i"><OfficialInput id="i" /></FormField>);
+    const label = screen.getByText('LABEL TEXT');
+    expect(label).toHaveClass('uppercase', 'tracking-[0.12em]');
+  });
+
+  it('label htmlFor matches input id', () => {
+    render(<FormField label="L" id="test-id"><OfficialInput id="test-id" /></FormField>);
+    const label = screen.getByText('L').parentElement;
+    expect(label).toHaveAttribute('for', 'test-id');
   });
 });

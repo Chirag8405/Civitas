@@ -1,49 +1,57 @@
-import { useSimulationStore } from '../../store/simulation.store';
+import { useSimulationStore } from '../simulation.store';
 
-describe('simulationStore', () => {
+describe('simulation store', () => {
   beforeEach(() => {
     useSimulationStore.getState().resetSimulation();
   });
 
-  it('initial phase is "setup"', () => {
-    expect(useSimulationStore.getState().phase).toBe('setup');
+  it('initial state matches expected shape', () => {
+    const state = useSimulationStore.getState();
+    expect(state.phase).toBe('setup');
+    expect(state.constituency.name).toBe('');
+    expect(state.election.candidates).toEqual([]);
+    expect(state.results.votes).toEqual([]);
   });
 
-  it('updateConstituency merges correctly', () => {
-    useSimulationStore.getState().updateConstituency({ name: 'Test City' });
-    expect(useSimulationStore.getState().constituency.name).toBe('Test City');
+  it('setPhase transitions correctly', () => {
+    const { setPhase } = useSimulationStore.getState();
+    setPhase('polling');
+    expect(useSimulationStore.getState().phase).toBe('polling');
+    setPhase('results');
+    expect(useSimulationStore.getState().phase).toBe('results');
+  });
+
+  it('updateConstituency merges partial updates', () => {
+    const { updateConstituency } = useSimulationStore.getState();
+    updateConstituency({ name: 'New City' });
+    expect(useSimulationStore.getState().constituency.name).toBe('New City');
+    expect(useSimulationStore.getState().constituency.country).toBe('');
     
-    useSimulationStore.getState().updateConstituency({ country: 'Testland' });
-    expect(useSimulationStore.getState().constituency.name).toBe('Test City');
+    updateConstituency({ country: 'Testland' });
+    expect(useSimulationStore.getState().constituency.name).toBe('New City');
     expect(useSimulationStore.getState().constituency.country).toBe('Testland');
   });
 
-  it('phase advances when setPhase called', () => {
-    useSimulationStore.getState().setPhase('polling');
-    expect(useSimulationStore.getState().phase).toBe('polling');
+  it('updateElection merges partial updates', () => {
+    const { updateElection } = useSimulationStore.getState();
+    updateElection({ calendarId: 'cal123' });
+    expect(useSimulationStore.getState().election.calendarId).toBe('cal123');
+    expect(useSimulationStore.getState().election.languages).toEqual([]);
   });
 
-  it('updateElection stores candidates correctly', () => {
-    const candidates = [{ id: 'c1', name: 'Alice', party: 'A' }];
-    useSimulationStore.getState().updateElection({ candidates });
-    expect(useSimulationStore.getState().election.candidates).toEqual(candidates);
+  it('updateResults merges partial updates', () => {
+    const { updateResults } = useSimulationStore.getState();
+    updateResults({ certified: true });
+    expect(useSimulationStore.getState().results.certified).toBe(true);
+    expect(useSimulationStore.getState().results.slidesUrl).toBe('');
   });
 
-  it('updateConstituency with pollingBooths stores correctly', () => {
-    const booths = [{ id: 'b1', name: 'Booth 1', location: { lat: 0, lng: 0 } }];
-    useSimulationStore.getState().updateConstituency({ pollingBooths: booths });
-    expect(useSimulationStore.getState().constituency.pollingBooths).toEqual(booths);
-  });
-
-  it('updateResults with votes stores correctly', () => {
-    const votes = [{ id: 'v1', candidateId: 'c1', zoneId: 'z1', timestamp: 'now' }];
-    useSimulationStore.getState().updateResults({ votes } as any);
-    expect(useSimulationStore.getState().results.votes).toEqual(votes);
-  });
-
-  it('reset clears all state back to initial', () => {
-    useSimulationStore.getState().updateConstituency({ name: 'Changed' });
-    useSimulationStore.getState().resetSimulation();
+  it('resetSimulation returns to initial state', () => {
+    const { setPhase, updateConstituency, resetSimulation } = useSimulationStore.getState();
+    setPhase('polling');
+    updateConstituency({ name: 'Dirty' });
+    resetSimulation();
+    expect(useSimulationStore.getState().phase).toBe('setup');
     expect(useSimulationStore.getState().constituency.name).toBe('');
   });
 });

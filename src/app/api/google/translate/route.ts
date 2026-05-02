@@ -6,8 +6,16 @@ const requestSchema = z.object({
   targetLanguage: z.string().min(1),
 });
 
+import { getServerSession } from "next-auth";
+import { authOptions } from "../../auth/[...nextauth]/route";
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const bodyJson = await req.json();
     const result = requestSchema.safeParse(bodyJson);
 

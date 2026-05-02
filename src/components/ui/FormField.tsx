@@ -6,10 +6,12 @@ export interface FormFieldProps {
 	label: string;
 	error?: string;
 	htmlFor?: string;
+	id?: string;
 	children: React.ReactNode;
 }
 
-export function FormField({ label, error, htmlFor, children }: FormFieldProps) {
+export function FormField({ label, error, htmlFor, id, children }: FormFieldProps) {
+	const finalHtmlFor = htmlFor ?? id;
 	const field = React.isValidElement(children)
 		? React.cloneElement(children as React.ReactElement<any>, {
 				className: cn(
@@ -21,7 +23,7 @@ export function FormField({ label, error, htmlFor, children }: FormFieldProps) {
 		: children;
 
 	return (
-		<label className="block" {...(htmlFor ? { htmlFor } : {})}>
+		<label className="block" {...(finalHtmlFor ? { htmlFor: finalHtmlFor } : {})}>
 			<span className="mb-1.5 block text-[11px] font-mono uppercase tracking-[0.12em] text-midGray">
 				{label}
 			</span>

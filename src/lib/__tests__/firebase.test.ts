@@ -1,19 +1,33 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { firebaseApp } from '../firebase';
 
-jest.mock('firebase/app', () => ({
-  initializeApp: jest.fn(() => ({})),
-  getApps: jest.fn(() => []),
-  getApp: jest.fn(() => ({})),
-}));
+jest.mock('firebase/app');
 
 describe('firebase lib', () => {
-  it('firebaseApp initialises with correct config', () => {
-    expect(firebaseApp).toBeDefined();
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('getApps returns existing app if already initialised', () => {
-    (getApps as jest.Mock).mockReturnValue([{ name: 'default' }]);
-    // In a real scenario, we'd re-import or trigger the logic
+  it('initialises app when no existing apps', () => {
+    (getApps as jest.Mock).mockReturnValue([]);
+    (initializeApp as jest.Mock).mockReturnValue({ name: 'new-app' });
+
+    // Re-import to trigger initialization
+    jest.isolateModules(() => {
+      const { firebaseApp } = require('../firebase');
+      expect(initializeApp).toHaveBeenCalled();
+      expect(firebaseApp.name).toBe('new-app');
+    });
+  });
+
+  it('returns existing app when already initialised', () => {
+    (getApps as jest.Mock).mockReturnValue([{ name: 'existing' }]);
+    (getApp as jest.Mock).mockReturnValue({ name: 'existing' });
+
+    jest.isolateModules(() => {
+      const { firebaseApp } = require('../firebase');
+      expect(initializeApp).not.toHaveBeenCalled();
+      expect(getApp).toHaveBeenCalled();
+      expect(firebaseApp.name).toBe('existing');
+    });
   });
 });

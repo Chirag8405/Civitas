@@ -1,0 +1,57 @@
+
+> civitas@0.1.0 test
+> jest --runInBand
+
+FAIL src/app/api/__tests__/gemini.test.ts
+  ● API /api/gemini › returns 200 on success
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 500
+
+      69 |       messages: [{ role: 'user', content: 'hello' }] 
+      70 |     }));
+    > 71 |     expect(res.status).toBe(200);
+         |                        ^
+      72 |     const data = await res.json();
+      73 |     expect(data.text).toBe('AI Response');
+      74 |     mockFetch.mockRestore();
+
+      at Object.<anonymous> (src/app/api/__tests__/gemini.test.ts:71:24)
+
+PASS src/components/ui/__tests__/OfficialCard.test.tsx
+PASS src/components/ui/__tests__/GeminiAdvisor.test.tsx
+PASS src/components/ui/__tests__/StampBadge.test.tsx
+PASS src/components/ui/__tests__/FormField.test.tsx
+PASS src/components/ui/__tests__/BallotCounter.test.tsx
+PASS src/app/api/__tests__/slides.test.ts
+PASS src/app/api/__tests__/calendar.test.ts
+PASS src/app/api/__tests__/translate.test.ts
+  ● Console
+
+    console.error
+      [translate] API error: { error: 'API Error' }
+
+      55 |     if (!res.ok) {
+      56 |       const err = await res.json();
+    > 57 |       console.error("[translate] API error:", err);
+         |               ^
+      58 |       return NextResponse.json(
+      59 |         { error: "Translation API failed", details: err },
+      60 |         { status: 500 }
+
+      at POST (src/app/api/google/translate/route.ts:57:15)
+      at async Object.<anonymous> (src/app/api/__tests__/translate.test.ts:75:17)
+
+PASS src/app/api/__tests__/sheets.test.ts
+PASS src/app/api/__tests__/validate-constituency.test.ts
+PASS src/lib/__tests__/simulation.test.ts
+PASS src/store/__tests__/simulation.store.test.ts
+PASS src/lib/__tests__/firebase.test.ts
+
+Test Suites: 1 failed, 13 passed, 14 total
+Tests:       1 failed, 71 passed, 72 total
+Snapshots:   0 total
+Time:        1.388 s
+Ran all test suites.

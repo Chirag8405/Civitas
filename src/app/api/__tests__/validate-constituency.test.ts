@@ -24,7 +24,6 @@ describe('API /api/validate-constituency', () => {
     location: { lat, lng }
   });
 
-  // Small area (~100m x 100m)
   const validBoundary = [
     { lat: 10.000, lng: 76.000 },
     { lat: 10.001, lng: 76.000 },
@@ -34,16 +33,54 @@ describe('API /api/validate-constituency', () => {
 
   const validZones = [{ id: 'z1', name: 'Zone 1' }];
 
-  it('returns valid:false when fewer than 3 booths via Zod', async () => {
-    const res = await POST(mockRequest({
+  it('returns 400 on missing or invalid body fields', async () => {
+    const res = await POST(mockRequest({}));
+    expect(res.status).toBe(400);
+  });
+
+  it('returns valid:false with insufficient booths', async () => {
+    // 0 booths
+    let res = await POST(mockRequest({
       boundary: validBoundary,
-      booths: [validBooth('1', 10.0005, 76.0005), validBooth('2', 10.0006, 76.0006)],
+      booths: [],
+      zones: validZones
+    }));
+    expect(res.status).toBe(400);
+
+    // 2 booths
+    res = await POST(mockRequest({
+      boundary: validBoundary,
+      booths: [validBooth('1', 10.0005, 76.0005), validBooth('2', 10.0005, 76.0005)],
       zones: validZones
     }));
     expect(res.status).toBe(400);
   });
 
-  it('returns valid:true with 3 booths and valid small boundary', async () => {
+  it('returns valid:false when boundary has too few vertices', async () => {
+    const res = await POST(mockRequest({
+      boundary: [{ lat: 0, lng: 0 }, { lat: 1, lng: 1 }],
+      booths: [validBooth('1', 0.5, 0.5), validBooth('2', 0.5, 0.5), validBooth('3', 0.5, 0.5)],
+      zones: validZones
+    }));
+    expect(res.status).toBe(400);
+  });
+
+  it('returns valid:false when booth is outside boundary', async () => {
+    const res = await POST(mockRequest({
+      boundary: validBoundary,
+      booths: [
+        validBooth('1', 10.0005, 76.0005),
+        validBooth('2', 10.0005, 76.0005),
+        validBooth('3', 11.000, 77.000) // Outside
+      ],
+      zones: validZones
+    }));
+    const data = await res.json();
+    expect(data.valid).toBe(false);
+    expect(data.errors).toContain('1 booth(s) are outside the constituency boundary.');
+  });
+
+  it('returns valid:true with correct data', async () => {
     const res = await POST(mockRequest({
       boundary: validBoundary,
       booths: [
@@ -54,9 +91,6 @@ describe('API /api/validate-constituency', () => {
       zones: validZones
     }));
     const data = await res.json();
-    if (!data.valid) {
-        console.log('Errors:', data.errors);
-    }
     expect(data.valid).toBe(true);
   });
 });

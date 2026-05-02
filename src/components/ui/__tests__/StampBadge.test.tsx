@@ -4,32 +4,52 @@ import { render, screen } from '@testing-library/react';
 import { StampBadge } from '../StampBadge';
 
 describe('StampBadge', () => {
-  it('renders CERTIFIED variant with gold text class', () => {
+  it('renders all variants correctly', () => {
+    const variants: Array<'CERTIFIED' | 'DISPUTED' | 'PENDING' | 'REJECTED' | 'CLASSIFIED'> = [
+      'CERTIFIED', 'DISPUTED', 'PENDING', 'REJECTED', 'CLASSIFIED'
+    ];
+    variants.forEach(variant => {
+      const { unmount } = render(<StampBadge variant={variant} />);
+      expect(screen.getByText(variant)).toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveAttribute('aria-label', variant);
+      unmount();
+    });
+  });
+
+  it('CERTIFIED has gold color class', () => {
     render(<StampBadge variant="CERTIFIED" />);
-    const badge = screen.getByText('CERTIFIED');
-    expect(badge).toHaveClass('text-govGold');
+    expect(screen.getByText('CERTIFIED')).toHaveClass('text-officialGold');
   });
 
-  it('renders DISPUTED variant with red text class', () => {
+  it('DISPUTED has red color class', () => {
     render(<StampBadge variant="DISPUTED" />);
-    const badge = screen.getByText('DISPUTED');
-    expect(badge).toHaveClass('text-officialRed');
+    expect(screen.getByText('DISPUTED')).toHaveClass('text-officialRed');
   });
 
-  it('renders PENDING variant with navy text class', () => {
+  it('PENDING has navy color class', () => {
     render(<StampBadge variant="PENDING" />);
-    const badge = screen.getByText('PENDING');
-    expect(badge).toHaveClass('text-inkNavy');
+    expect(screen.getByText('PENDING')).toHaveClass('text-inkNavy');
   });
 
-  it('applies rotation transform class', () => {
-    render(<StampBadge variant="DISPUTED" />);
-    const badge = screen.getByText('DISPUTED');
-    expect(badge).toHaveClass('-rotate-2');
+  it('REJECTED has red color class', () => {
+    render(<StampBadge variant="REJECTED" />);
+    expect(screen.getByText('REJECTED')).toHaveClass('text-officialRed');
   });
 
-  it('renders custom text prop when provided', () => {
+  it('CLASSIFIED has gray color class', () => {
+    render(<StampBadge variant="CLASSIFIED" />);
+    expect(screen.getByText('CLASSIFIED')).toHaveClass('text-midGray');
+  });
+
+  it('rotation style is applied', () => {
+    const { container } = render(<StampBadge variant="CERTIFIED" rotate={-5} />);
+    const div = container.firstChild as HTMLElement;
+    expect(div.style.transform).toContain('rotate(-5deg)');
+  });
+
+  it('custom text prop overrides default variant text', () => {
     render(<StampBadge variant="CERTIFIED" text="CUSTOM TEXT" />);
+    expect(screen.queryByText('CERTIFIED')).not.toBeInTheDocument();
     expect(screen.getByText('CUSTOM TEXT')).toBeInTheDocument();
   });
 });
