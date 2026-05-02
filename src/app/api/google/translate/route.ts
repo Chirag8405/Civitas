@@ -35,7 +35,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const sourceTexts = Object.values(texts);
 
     if (sourceTexts.length === 0) {
-        return NextResponse.json({ translations: {}, targetLanguage });
+      return NextResponse.json({ translations: {}, targetLanguage });
     }
 
     const res = await fetch(
