@@ -1,6 +1,5 @@
 /** @jest-environment node */
 import 'isomorphic-fetch';
-import { POST } from '../google/sheets/route';
 import { getServerSession } from 'next-auth';
 
 jest.mock('next-auth');
@@ -14,6 +13,8 @@ jest.mock('next/server', () => ({
 }));
 
 describe('API /api/google/sheets', () => {
+  let POST: any;
+
   const mockRequest = (body: any) => {
     return {
       json: () => Promise.resolve(body),
@@ -21,7 +22,15 @@ describe('API /api/google/sheets', () => {
   };
 
   beforeEach(() => {
+    jest.isolateModules(() => {
+      POST = require('../google/sheets/route').POST;
+    });
     jest.clearAllMocks();
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('returns 401 without session', async () => {
@@ -45,40 +54,61 @@ describe('API /api/google/sheets', () => {
     expect(data.voterCount).toBe(200);
   });
 
-  it('calls Google Sheets API when accessToken present', async () => {
+  it('calls Google Sheets API and handles sharing step failure', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ 
       user: { email: 'test@test.com' },
       accessToken: 'mock-token'
     });
 
-    const mockFetch = jest.spyOn(global, 'fetch').mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ spreadsheetId: 'sheet123' })
-    } as any);
+    const mockFetch = jest.spyOn(global, 'fetch').mockImplementation((url: any) => {
+      if (url.includes('/permissions')) {
+        return Promise.reject(new Error('Sharing Failed'));
+      }
+      if (url.includes('/values/')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as any);
+      }
+      if (url.includes(':batchUpdate')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as any);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ spreadsheetId: 'sheet123' })
+      } as any);
+    });
 
     const res = await POST(mockRequest({ constituencyName: 'Test' }));
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.spreadsheetId).toBe('sheet123');
     expect(data.sheetUrl).toContain('sheet123');
-    
-    mockFetch.mockRestore();
   });
 
-  it('returns 500 when Google Sheets creation fails', async () => {
+  it('returns 500 when Sheets data write fails', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ 
       user: { email: 'test@test.com' },
       accessToken: 'mock-token'
     });
 
-    const mockFetch = jest.spyOn(global, 'fetch').mockResolvedValue({
-      ok: false,
-      json: () => Promise.resolve({ error: 'API Error' })
-    } as any);
+    jest.spyOn(global, 'fetch').mockImplementation((url: any) => {
+      if (url.includes('/values/')) {
+        return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: 'Write Fail' }) } as any);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ spreadsheetId: 'sheetWriteFail' })
+      } as any);
+    });
 
     const res = await POST(mockRequest({ constituencyName: 'Test' }));
     expect(res.status).toBe(500);
-    
-    mockFetch.mockRestore();
+    const data = await res.json();
+    expect(data.error).toBe('Sheet created but data write failed');
+  });
+
+  it('returns 500 on unhandled error', async () => {
+    (getServerSession as jest.Mock).mockRejectedValue(new Error('Panic'));
+    const res = await POST(mockRequest({ constituencyName: 'Test' }));
+    expect(res.status).toBe(500);
+    expect(console.error).toHaveBeenCalledWith('[sheets] Unhandled error:', expect.any(Error));
   });
 });

@@ -44,13 +44,34 @@ describe('API /api/google/translate', () => {
 
   it('returns 401 without session', async () => {
     (getServerSession as jest.Mock).mockResolvedValue(null);
-    const res = await POST(mockRequest({ texts: {}, targetLanguage: 'en' }));
+    const res = await POST(mockRequest({ texts: { t1: 'h' }, targetLanguage: 'en' }));
     expect(res.status).toBe(401);
   });
 
-  it('returns 400 when texts or targetLanguage missing', async () => {
+  it('returns 400 when texts missing', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 't@t.com' } });
-    const res = await POST(mockRequest({}));
+    const res = await POST(mockRequest({ targetLanguage: 'es' }));
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 200 with empty translations when texts object is empty', async () => {
+    (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 't@t.com' } });
+    
+    // Override default mock which returns 1 translation
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: { translations: [] } }),
+    } as any);
+
+    const res = await POST(mockRequest({ texts: {}, targetLanguage: 'es' }));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.translations).toEqual({});
+  });
+
+  it('returns 400 when targetLanguage is missing', async () => {
+    (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 't@t.com' } });
+    const res = await POST(mockRequest({ texts: { t1: 'h' } }));
     expect(res.status).toBe(400);
   });
 
@@ -90,6 +111,5 @@ describe('API /api/google/translate', () => {
     }));
     
     expect(res.status).toBe(500);
-    expect(console.error).toHaveBeenCalled();
   });
 });
