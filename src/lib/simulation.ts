@@ -1,12 +1,23 @@
 import { getFirestore, collection, doc, writeBatch, serverTimestamp } from "firebase/firestore";
 import { firebaseApp } from "./firebase";
 import type { Candidate } from "@/types";
+import { SIMULATION_INTERVAL_MS, DISPUTE_THRESHOLD } from "./constants";
 
 let simulationInterval: NodeJS.Timeout | null = null;
 let votesCast = 0;
 let disputeTriggered = false;
+let isRunning = false;
 
+/**
+ * Starts the vote simulation engine writing to Firestore in real-time.
+ * @param userId - The election document ID in Firestore
+ * @param candidates - Array of candidates to distribute votes across
+ * @param totalVoters - Total number of votes to simulate
+ */
 export const startSimulation = async (userId: string, candidates: Candidate[], totalVoters: number) => {
+  if (isRunning) return;
+  isRunning = true;
+
   if (simulationInterval) {
     clearInterval(simulationInterval);
   }
@@ -64,7 +75,7 @@ export const startSimulation = async (userId: string, candidates: Candidate[], t
 
     votesCast += batchSize;
 
-    if (votesCast >= totalVoters * 0.6 && !disputeTriggered) {
+    if (votesCast >= totalVoters * DISPUTE_THRESHOLD && !disputeTriggered) {
       disputeTriggered = true;
       const disputesRef = collection(db, "elections", userId, "disputes");
       const disputeDoc = doc(disputesRef);
@@ -83,10 +94,11 @@ export const startSimulation = async (userId: string, candidates: Candidate[], t
       // Verify by reading back (quietly)
       const { getDocs } = await import("firebase/firestore");
       await getDocs(collection(db, "elections", userId, "votes"));
-    } catch (e) {
-      console.error("Firestore write failed:", e);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Unknown error';
+      console.error("[simulation] Firestore write failed:", message);
     }
-  }, 1000);
+  }, SIMULATION_INTERVAL_MS);
 
   // Init elections document
   const electionRef = doc(db, "elections", userId);
@@ -94,14 +106,19 @@ export const startSimulation = async (userId: string, candidates: Candidate[], t
   batch.set(electionRef, { status: "polling", totalVoters }, { merge: true });
   try {
     await batch.commit();
-  } catch (e) {
-    console.error("Init batch FAILED:", e);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'Unknown error';
+    console.error("[simulation] Init batch FAILED:", message);
   }
 };
 
+/**
+ * Stops the active simulation interval and resets running state.
+ */
 export const stopSimulation = () => {
   if (simulationInterval) {
     clearInterval(simulationInterval);
     simulationInterval = null;
   }
+  isRunning = false;
 };

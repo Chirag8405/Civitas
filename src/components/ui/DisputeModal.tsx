@@ -3,14 +3,10 @@
 import * as React from "react";
 import { OfficialCard } from "./OfficialCard";
 import { StampBadge } from "./StampBadge";
+import type { Dispute } from "@/types";
 
 interface DisputeModalProps {
-  pendingDispute: {
-    id: string;
-    zone: string;
-    reason: string;
-    votesAffected: number;
-  } | null;
+  pendingDispute: Dispute | null;
   disputeAdvisory: string;
   advisoryLoading: boolean;
   onRuling: (resolution: "ACCEPT" | "REJECT") => void;
@@ -32,7 +28,7 @@ export function DisputeModal({
       aria-labelledby="dispute-title"
     >
       <OfficialCard
-        title={`DISPUTE FILED — ${pendingDispute.zone}`}
+        title={`DISPUTE FILED — ${pendingDispute.zoneId}`}
         className="w-full max-w-2xl max-h-[90vh] overflow-y-auto"
         titleId="dispute-title"
       >

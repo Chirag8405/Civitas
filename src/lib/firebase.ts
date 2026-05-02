@@ -7,4 +7,5 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
 };
 
+/** Initialised Firebase app instance — reuses existing app if already initialised. */
 export const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);

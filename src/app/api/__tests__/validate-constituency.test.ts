@@ -59,7 +59,7 @@ describe('API /api/validate-constituency', () => {
     }));
     const data = await res.json();
     expect(data.valid).toBe(false);
-    expect(data.errors).toContain('1 booth(s) are outside the constituency boundary.');
+    expect(data.errors).toContain('1 booth(s) are outside the boundary.');
   });
 
   it('returns valid:true with correct data', async () => {

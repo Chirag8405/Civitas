@@ -1,13 +1,15 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { DisputeModal } from '../DisputeModal';
+import type { Dispute } from '@/types';
 
 describe('DisputeModal', () => {
-  const pendingDispute = {
+  const pendingDispute: Dispute = {
     id: 'd1',
-    zone: 'Zone 1',
+    zoneId: 'Zone 1',
     reason: 'Irregularity in ballot count',
-    votesAffected: 42
+    votesAffected: 42,
+    status: 'PENDING'
   };
 
   const mockOnRuling = jest.fn();

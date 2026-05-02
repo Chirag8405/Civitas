@@ -19,7 +19,37 @@ const requestSchema = z.object({
   }).nullable(),
 });
 
-type RequestData = z.infer<typeof requestSchema>;
+/**
+ * Builds a Slides API batchUpdate request for creating a text box with styled text.
+ */
+function buildTextBoxRequest(objectId: string, pageId: string, text: string, x: number, y: number, w: number, h: number, fontSize = 14, bold = false, color = { red: 0.96, green: 0.94, blue: 0.91 }) {
+  return [
+    {
+      createShape: {
+        objectId,
+        shapeType: "TEXT_BOX",
+        elementProperties: {
+          pageObjectId: pageId,
+          size: { width: { magnitude: w, unit: "PT" }, height: { magnitude: h, unit: "PT" } },
+          transform: { scaleX: 1, scaleY: 1, translateX: x, translateY: y, unit: "PT" }
+        }
+      }
+    },
+    { insertText: { objectId, insertionIndex: 0, text } },
+    {
+      updateTextStyle: {
+        objectId,
+        textRange: { type: "ALL" },
+        style: {
+          foregroundColor: { opaqueColor: { rgbColor: color } },
+          fontSize: { magnitude: fontSize, unit: "PT" },
+          bold
+        },
+        fields: "foregroundColor,fontSize,bold"
+      }
+    }
+  ];
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -56,10 +86,9 @@ export async function POST(req: NextRequest) {
     });
     const slidesData = await createRes.json();
     const presentationId = slidesData.presentationId;
-    const slide1Id = slidesData.slides[0].objectId; // real ID from API response
+    const slide1Id = slidesData.slides[0].objectId;
     const slidesUrl = `https://docs.google.com/presentation/d/${presentationId}/edit`;
 
-    // Step 2 — First batchUpdate: create slides 2, 3, 4 ONLY
     const createSlidesRes = await fetch(`https://slides.googleapis.com/v1/presentations/${presentationId}:batchUpdate`, {
       method: "POST",
       headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
@@ -73,12 +102,10 @@ export async function POST(req: NextRequest) {
     });
     if (!createSlidesRes.ok) {
       const err = await createSlidesRes.json();
-      console.error("Create slides failed:", err);
+      console.error("[slides] Create slides failed:", err);
     }
 
-    // Step 3 — Second batchUpdate: add all text content
     const contentRequests = [
-      // Slide 1 background
       {
         updatePageProperties: {
           objectId: slide1Id,
@@ -86,7 +113,6 @@ export async function POST(req: NextRequest) {
           fields: "pageBackgroundFill.solidFill.color"
         }
       },
-      // Slides 2,3,4 backgrounds
       ...["slide2", "slide3", "slide4"].map(id => ({
         updatePageProperties: {
           objectId: id,
@@ -94,36 +120,13 @@ export async function POST(req: NextRequest) {
           fields: "pageBackgroundFill.solidFill.color"
         }
       })),
-      // Slide 1 title textbox
-      { createShape: { objectId: "s1title", shapeType: "TEXT_BOX", elementProperties: { pageObjectId: slide1Id, size: { width: { magnitude: 600, unit: "PT" }, height: { magnitude: 80, unit: "PT" } }, transform: { scaleX: 1, scaleY: 1, translateX: 50, translateY: 80, unit: "PT" } } } },
-      { insertText: { objectId: "s1title", insertionIndex: 0, text: "OFFICIAL RESULTS DECLARATION" } },
-      { updateTextStyle: { objectId: "s1title", textRange: { type: "ALL" }, style: { foregroundColor: { opaqueColor: { rgbColor: { red: 0.96, green: 0.94, blue: 0.91 } } }, fontSize: { magnitude: 28, unit: "PT" }, bold: true }, fields: "foregroundColor,fontSize,bold" } },
-      // Slide 1 subtitle
-      { createShape: { objectId: "s1sub", shapeType: "TEXT_BOX", elementProperties: { pageObjectId: slide1Id, size: { width: { magnitude: 600, unit: "PT" }, height: { magnitude: 120, unit: "PT" } }, transform: { scaleX: 1, scaleY: 1, translateX: 50, translateY: 180, unit: "PT" } } } },
-      { insertText: { objectId: "s1sub", insertionIndex: 0, text: `${constituencyName}\nDate: ${new Date().toLocaleDateString()}\nReturning Officer: ${session.user.name ?? "Unknown"}` } },
-      { updateTextStyle: { objectId: "s1sub", textRange: { type: "ALL" }, style: { foregroundColor: { opaqueColor: { rgbColor: { red: 0.96, green: 0.94, blue: 0.91 } } }, fontSize: { magnitude: 18, unit: "PT" } }, fields: "foregroundColor,fontSize" } },
-      // Slide 2 results header
-      { createShape: { objectId: "s2title", shapeType: "TEXT_BOX", elementProperties: { pageObjectId: "slide2", size: { width: { magnitude: 600, unit: "PT" }, height: { magnitude: 60, unit: "PT" } }, transform: { scaleX: 1, scaleY: 1, translateX: 50, translateY: 40, unit: "PT" } } } },
-      { insertText: { objectId: "s2title", insertionIndex: 0, text: "VOTE COUNT — OFFICIAL RESULTS" } },
-      { updateTextStyle: { objectId: "s2title", textRange: { type: "ALL" }, style: { foregroundColor: { opaqueColor: { rgbColor: { red: 0.96, green: 0.94, blue: 0.91 } } }, fontSize: { magnitude: 22, unit: "PT" }, bold: true }, fields: "foregroundColor,fontSize,bold" } },
-      // Slide 2 results body — one textbox per candidate
-      ...candidateCounts.map((c, i: number) => [
-        { createShape: { objectId: `s2cand${i}`, shapeType: "TEXT_BOX", elementProperties: { pageObjectId: "slide2", size: { width: { magnitude: 580, unit: "PT" }, height: { magnitude: 40, unit: "PT" } }, transform: { scaleX: 1, scaleY: 1, translateX: 50, translateY: 120 + i * 50, unit: "PT" } } } },
-        { insertText: { objectId: `s2cand${i}`, insertionIndex: 0, text: `${c.name}  |  ${c.party}  |  ${c.votes} votes` } },
-        { updateTextStyle: { objectId: `s2cand${i}`, textRange: { type: "ALL" }, style: { foregroundColor: { opaqueColor: { rgbColor: { red: 0.96, green: 0.94, blue: 0.91 } } }, fontSize: { magnitude: 16, unit: "PT" } }, fields: "foregroundColor,fontSize" } },
-      ]).flat(),
-      // Slide 3 winner
-      { createShape: { objectId: "s3label", shapeType: "TEXT_BOX", elementProperties: { pageObjectId: "slide3", size: { width: { magnitude: 600, unit: "PT" }, height: { magnitude: 60, unit: "PT" } }, transform: { scaleX: 1, scaleY: 1, translateX: 50, translateY: 80, unit: "PT" } } } },
-      { insertText: { objectId: "s3label", insertionIndex: 0, text: "ELECTED MEMBER" } },
-      { updateTextStyle: { objectId: "s3label", textRange: { type: "ALL" }, style: { foregroundColor: { opaqueColor: { rgbColor: { red: 0.83, green: 0.64, blue: 0.1 } } }, fontSize: { magnitude: 20, unit: "PT" }, bold: true }, fields: "foregroundColor,fontSize,bold" } },
-      // Slide 3 winner name
-      { createShape: { objectId: "s3winner", shapeType: "TEXT_BOX", elementProperties: { pageObjectId: "slide3", size: { width: { magnitude: 600, unit: "PT" }, height: { magnitude: 100, unit: "PT" } }, transform: { scaleX: 1, scaleY: 1, translateX: 50, translateY: 160, unit: "PT" } } } },
-      { insertText: { objectId: "s3winner", insertionIndex: 0, text: `${winner?.name ?? "N/A"}\n${winner?.party ?? ""}` } },
-      { updateTextStyle: { objectId: "s3winner", textRange: { type: "ALL" }, style: { foregroundColor: { opaqueColor: { rgbColor: { red: 0.96, green: 0.94, blue: 0.91 } } }, fontSize: { magnitude: 36, unit: "PT" }, bold: true }, fields: "foregroundColor,fontSize,bold" } },
-      // Slide 4 certification
-      { createShape: { objectId: "s4cert", shapeType: "TEXT_BOX", elementProperties: { pageObjectId: "slide4", size: { width: { magnitude: 580, unit: "PT" }, height: { magnitude: 200, unit: "PT" } }, transform: { scaleX: 1, scaleY: 1, translateX: 50, translateY: 120, unit: "PT" } } } },
-      { insertText: { objectId: "s4cert", insertionIndex: 0, text: `I hereby certify that the above results are true and accurate.\n\nSigned: ${session.user.name ?? "Returning Officer"}\nDate: ${new Date().toLocaleDateString()}\nConstituency: ${constituencyName}` } },
-      { updateTextStyle: { objectId: "s4cert", textRange: { type: "ALL" }, style: { foregroundColor: { opaqueColor: { rgbColor: { red: 0.96, green: 0.94, blue: 0.91 } } }, fontSize: { magnitude: 18, unit: "PT" } }, fields: "foregroundColor,fontSize" } },
+      ...buildTextBoxRequest("s1title", slide1Id, "OFFICIAL RESULTS DECLARATION", 50, 80, 600, 80, 28, true),
+      ...buildTextBoxRequest("s1sub", slide1Id, `${constituencyName}\nDate: ${new Date().toLocaleDateString()}\nReturning Officer: ${session.user.name ?? "Unknown"}`, 50, 180, 600, 120, 18),
+      ...buildTextBoxRequest("s2title", "slide2", "VOTE COUNT — OFFICIAL RESULTS", 50, 40, 600, 60, 22, true),
+      ...candidateCounts.flatMap((c, i) => buildTextBoxRequest(`s2cand${i}`, "slide2", `${c.name}  |  ${c.party}  |  ${c.votes} votes`, 50, 120 + i * 50, 580, 40, 16)),
+      ...buildTextBoxRequest("s3label", "slide3", "ELECTED MEMBER", 50, 80, 600, 60, 20, true, { red: 0.83, green: 0.64, blue: 0.1 }),
+      ...buildTextBoxRequest("s3winner", "slide3", `${winner?.name ?? "N/A"}\n${winner?.party ?? ""}`, 50, 160, 600, 100, 36, true),
+      ...buildTextBoxRequest("s4cert", "slide4", `I hereby certify that the above results are true and accurate.\n\nSigned: ${session.user.name ?? "Returning Officer"}\nDate: ${new Date().toLocaleDateString()}\nConstituency: ${constituencyName}`, 50, 120, 580, 200, 18),
     ];
 
     const contentRes = await fetch(`https://slides.googleapis.com/v1/presentations/${presentationId}:batchUpdate`, {
@@ -133,10 +136,9 @@ export async function POST(req: NextRequest) {
     });
     if (!contentRes.ok) {
       const err = await contentRes.json();
-      console.error("Content batchUpdate failed:", err);
+      console.error("[slides] Content batchUpdate failed:", err);
     }
 
-    // Share with user
     await fetch(`https://www.googleapis.com/drive/v3/files/${presentationId}/permissions`, {
       method: "POST",
       headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
@@ -145,8 +147,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ slidesUrl });
   } catch (err: unknown) {
-    const error = err as Error;
-    console.error("Slides error:", error);
-    return NextResponse.json({ error: "Failed to generate slides: " + error.message }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[slides] error:', message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

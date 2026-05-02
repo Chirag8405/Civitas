@@ -19,8 +19,6 @@ const requestSchema = z.object({
   }).nullable(),
 });
 
-type RequestData = z.infer<typeof requestSchema>;
-
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -32,10 +30,7 @@ export async function POST(req: NextRequest) {
     const result = requestSchema.safeParse(bodyJson);
 
     if (!result.success) {
-      return NextResponse.json(
-        { error: "Invalid request body", details: result.error.issues },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid request body", details: result.error.issues }, { status: 400 });
     }
 
     const { constituencyName, candidateCounts, winner } = result.data;
@@ -51,10 +46,7 @@ export async function POST(req: NextRequest) {
     const sheetTitle = `${constituencyName} — Official Results`;
     const createRes = await fetch("https://sheets.googleapis.com/v4/spreadsheets", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
       body: JSON.stringify({ properties: { title: sheetTitle } }),
     });
 
@@ -72,25 +64,20 @@ export async function POST(req: NextRequest) {
 
     await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1!A1?valueInputOption=RAW`, {
       method: "PUT",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
       body: JSON.stringify({ range: "Sheet1!A1", majorDimension: "ROWS", values: rows }),
     });
 
     await fetch(`https://www.googleapis.com/drive/v3/files/${spreadsheetId}/permissions`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
       body: JSON.stringify({ type: "user", role: "reader", emailAddress: session.user.email }),
     }).catch(() => {});
 
     return NextResponse.json({ sheetUrl });
   } catch (err: unknown) {
-    console.error("Sheets results error:", err);
-    return NextResponse.json({ error: "Failed to generate results sheet" }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[sheets-results] error:', message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

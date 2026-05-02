@@ -6,10 +6,15 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import type { SimulationState } from "@/types";
 
 type SimulationStore = SimulationState & {
+  /** Updates the current simulation phase (setup, registration, campaign, polling, results). */
   setPhase: (phase: SimulationState["phase"]) => void;
+  /** Patches the constituency configuration including name, country, and map data. */
   updateConstituency: (update: Partial<SimulationState["constituency"]>) => void;
+  /** Patches election metadata including milestones, candidates, and ballot info. */
   updateElection: (update: Partial<SimulationState["election"]>) => void;
+  /** Patches real-time election results, including votes and disputes. */
   updateResults: (update: Partial<SimulationState["results"]>) => void;
+  /** Resets the entire simulation store to the initial setup state. */
   resetSimulation: () => void;
 };
 
@@ -38,6 +43,10 @@ const initialState: SimulationState = {
   },
 };
 
+/**
+ * Main state management hook for the Civitas simulation.
+ * Persists state to localStorage under the key 'civitas-simulation'.
+ */
 export const useSimulationStore = create<SimulationStore>()(
   persist(
     (set) => ({

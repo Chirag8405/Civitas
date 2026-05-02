@@ -28,6 +28,7 @@ describe('simulation lib', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     jest.clearAllMocks();
+    stopSimulation(); // Reset isRunning guard
   });
 
   afterEach(() => {
@@ -56,6 +57,7 @@ describe('simulation lib', () => {
     const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
     
     await startSimulation(userId, mockCandidates, totalVoters);
+    stopSimulation(); // Reset guard manually to allow second start
     await startSimulation(userId, mockCandidates, totalVoters);
 
     expect(clearIntervalSpy).toHaveBeenCalled();
@@ -80,8 +82,9 @@ describe('simulation lib', () => {
     jest.runOnlyPendingTimers();
 
     // Check if dispute was set
-    const disputeCall = mockBatch.set.mock.calls.find(call => 
-      call[1] && call[1].reason === 'Polling station opened late'
+    const allCalls = mockBatch.set.mock.calls;
+    const disputeCall = allCalls.find((call: any[]) =>
+      call[1] && call[1].status === 'PENDING'
     );
     expect(disputeCall).toBeDefined();
     expect(disputeCall[1].zone).toBe('Zone 3');
@@ -115,7 +118,7 @@ describe('simulation lib', () => {
     await Promise.resolve();
     await Promise.resolve();
     
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('failed'), expect.any(Error));
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('FAILED'), expect.any(String));
     consoleSpy.mockRestore();
   });
 

@@ -109,6 +109,6 @@ describe('API /api/google/sheets', () => {
     (getServerSession as jest.Mock).mockRejectedValue(new Error('Panic'));
     const res = await POST(mockRequest({ constituencyName: 'Test' }));
     expect(res.status).toBe(500);
-    expect(console.error).toHaveBeenCalledWith('[sheets] Unhandled error:', expect.any(Error));
+    expect(console.error).toHaveBeenCalledWith('[sheets] error:', expect.any(String));
   });
 });

@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../../auth/[...nextauth]/route";
 
 const requestSchema = z.object({
   texts: z.record(z.string(), z.string()), // fieldId → text
   targetLanguage: z.string().min(1),
 });
-
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/route";
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -27,17 +26,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const { texts, targetLanguage } = result.data;
-
     const apiKey = process.env.GOOGLE_TRANSLATION_API_KEY;
     if (!apiKey) {
-      return NextResponse.json(
-        { error: "GOOGLE_TRANSLATION_API_KEY not set" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "GOOGLE_TRANSLATION_API_KEY not set" }, { status: 500 });
     }
 
     const fieldIds = Object.keys(texts);
     const sourceTexts = Object.values(texts);
+
+    if (sourceTexts.length === 0) {
+        return NextResponse.json({ translations: {}, targetLanguage });
+    }
 
     const res = await fetch(
       `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`,
@@ -55,23 +54,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (!res.ok) {
       const err = await res.json();
       console.error("[translate] API error:", err);
-      return NextResponse.json(
-        { error: "Translation API failed", details: err },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Translation API failed" }, { status: 500 });
     }
 
     const data = await res.json();
     const translations: Record<string, string> = {};
-    data.data.translations.forEach(
-      (t: { translatedText: string }, i: number) => {
-        translations[fieldIds[i]] = t.translatedText;
-      }
-    );
+    data.data.translations.forEach((t: { translatedText: string }, i: number) => {
+      translations[fieldIds[i]] = t.translatedText;
+    });
 
     return NextResponse.json({ translations, targetLanguage });
-  } catch (err) {
-    console.error("[translate] Unhandled error:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[translate] error:', message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
