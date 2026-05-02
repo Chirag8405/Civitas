@@ -206,6 +206,15 @@ export function MapConstituency({
 
     return () => {
       isMounted = false;
+      if (mapRef.current) {
+        (window as any).google.maps.event.clearInstanceListeners(mapRef.current);
+      }
+      if (boundaryRef.current) {
+        (window as any).google.maps.event.clearInstanceListeners(boundaryRef.current);
+      }
+      if (pathObj) {
+        (window as any).google.maps.event.clearInstanceListeners(pathObj);
+      }
     };
   }, [onBoundaryChange, onBoothPlace]);
 
