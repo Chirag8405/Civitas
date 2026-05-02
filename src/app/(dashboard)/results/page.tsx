@@ -75,6 +75,18 @@ export default function ResultsPage() {
 
   const handleCertify = async () => {
     setIsCertifying(true);
+
+    // Fresh data from store
+    const { constituency, election, results } = useSimulationStore.getState();
+    const storeCandidateCounts = election.candidates.map(c => ({
+      id: c.id,
+      name: c.name,
+      party: c.party,
+      votes: results.votes.filter(v => v.candidateId === c.id).length
+    })).sort((a, b) => b.votes - a.votes);
+
+    const storeWinner = storeCandidateCounts[0] ?? null;
+
     try {
       // Generate Sheets
       const sheetRes = await fetch("/api/google/sheets/results", {
@@ -82,8 +94,8 @@ export default function ResultsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           constituencyName: constituency.name,
-          candidateCounts,
-          winner
+          candidateCounts: storeCandidateCounts,
+          winner: storeWinner,
         }),
       });
       const sheetData = await sheetRes.json();
@@ -95,8 +107,8 @@ export default function ResultsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           constituencyName: constituency.name,
-          candidateCounts,
-          winner
+          candidateCounts: storeCandidateCounts,
+          winner: storeWinner,
         }),
       });
       const slideData = await slideRes.json();

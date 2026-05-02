@@ -13,6 +13,10 @@ export async function POST(req: NextRequest) {
     const { constituencyName, candidateCounts, winner } = body;
     const accessToken = (session as any)?.accessToken as string | undefined;
 
+    if (!constituencyName) {
+      return NextResponse.json({ error: "Missing constituency name" }, { status: 400 });
+    }
+
     if (!accessToken) {
       return NextResponse.json({
         slidesUrl: "https://docs.google.com/presentation/d/mock-slides-id/edit",
