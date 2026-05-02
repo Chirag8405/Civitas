@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { collection, onSnapshot, query, getFirestore, updateDoc, doc } from "firebase/firestore";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from "recharts";
 
 import { useSimulationStore } from "@/store/simulation.store";
 import { firebaseApp } from "@/lib/firebase";
@@ -22,10 +23,12 @@ const ELECTION_ID = "demo-election";
 const TOTAL_VOTERS = 200;
 
 export default function PollingPage() {
+  const router = useRouter();
   const { election, constituency, results, updateResults } = useSimulationStore();
   const [votes, setVotes] = useState<VoteRecord[]>([]);
   const [currentTime, setCurrentTime] = useState("");
   const simulationStarted = React.useRef(false);
+  const [redirectCountdown, setRedirectCountdown] = useState(3);
 
   // Disputes
   const [pendingDispute, setPendingDispute] = useState<any>(null);
@@ -35,6 +38,8 @@ export default function PollingPage() {
   // Gemini Advisor
   const [advisorMessages, setAdvisorMessages] = useState<GeminiMessage[]>([]);
   const [advisorLoading, setAdvisorLoading] = useState(false);
+
+  const pollingComplete = votes.length >= TOTAL_VOTERS;
 
   useEffect(() => {
     setCurrentTime(new Date().toLocaleTimeString());
@@ -49,6 +54,22 @@ export default function PollingPage() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (pollingComplete) {
+      const timer = setInterval(() => {
+        setRedirectCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            router.push("/results");
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [pollingComplete, router]);
 
   useEffect(() => {
     console.log("Candidates available:", election.candidates);
@@ -88,7 +109,7 @@ export default function PollingPage() {
       unsubVotes();
       unsubDisputes();
     };
-  }, []);
+  }, [election.candidates]);
 
   // Query Gemini for dispute
   useEffect(() => {
@@ -259,6 +280,12 @@ export default function PollingPage() {
             {currentTime}
           </div>
         </div>
+
+        {pollingComplete && (
+          <div className="bg-inkNavy text-formWhite p-4 font-mono text-center animate-pulse">
+            VOTING COMPLETE. Redirecting to results in {redirectCountdown}...
+          </div>
+        )}
 
         <div className="flex justify-center py-8">
           <BallotCounter current={votes.length} total={TOTAL_VOTERS} className="scale-125 transform" />

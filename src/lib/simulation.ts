@@ -40,12 +40,11 @@ export const startSimulation = async (userId: string, candidates: Candidate[], t
   console.log("About to start setInterval");
   simulationInterval = setInterval(async () => {
     console.log("Interval tick firing");
-    if (votesCast >= totalVoters) {
+    const batchSize = Math.min(Math.floor(Math.random() * 6) + 3, totalVoters - votesCast);
+    if (batchSize <= 0) {
       stopSimulation();
       return;
     }
-
-    const batchSize = Math.min(Math.floor(Math.random() * 6) + 3, totalVoters - votesCast);
     const writeBatchDb = writeBatch(db);
     const votesRef = collection(db, "elections", userId, "votes");
 
