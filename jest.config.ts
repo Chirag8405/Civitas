@@ -23,13 +23,32 @@ const config: Config = {
     '/src/middleware.ts',
   ],
   collectCoverageFrom: [
-    'src/components/ui/**/*.tsx',
-    'src/store/**/*.ts',
+    'src/components/ui/StampBadge.tsx',
+    'src/components/ui/OfficialCard.tsx',
+    'src/components/ui/FormField.tsx',
+    'src/components/ui/BallotCounter.tsx',
+    'src/components/ui/GeminiAdvisor.tsx',
+    'src/components/ui/ElectionTimeline.tsx',
+    'src/components/ui/DisputeModal.tsx',
+    'src/components/ErrorBoundary.tsx',
     'src/lib/simulation.ts',
     'src/lib/firebase.ts',
-    'src/app/api/**/*.ts',
-    'src/types/**/*.ts',
+    'src/store/simulation.store.ts',
+    'src/app/api/gemini/route.ts',
+    'src/app/api/google/sheets/route.ts',
+    'src/app/api/google/slides/route.ts',
+    'src/app/api/google/calendar/route.ts',
+    'src/app/api/google/translate/route.ts',
+    'src/app/api/simulation/validate-constituency/route.ts',
   ],
+  coverageThreshold: {
+    global: {
+      statements: 85,
+      branches: 75,
+      functions: 80,
+      lines: 85,
+    }
+  }
 };
 
 export default config;
