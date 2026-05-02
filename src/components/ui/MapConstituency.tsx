@@ -89,7 +89,7 @@ export function MapConstituency({
   const zoneOverlaysRef = React.useRef<Array<{ polygon: any; label: any }>>([]);
   const [isReady, setIsReady] = React.useState(false);
   const [missingKey, setMissingKey] = React.useState(false);
-
+  const pathObjRef = React.useRef<any>(null);
   React.useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
     if (!apiKey) {
@@ -156,6 +156,7 @@ export function MapConstituency({
 
       // Manual polygon drawing (replacing DrawingManager)
       const pathObj = new g.maps.MVCArray();
+      pathObjRef.current = pathObj;
       const boundaryPolygon = new g.maps.Polygon({
         map: map,
         paths: [pathObj],
@@ -212,8 +213,8 @@ export function MapConstituency({
       if (boundaryRef.current) {
         (window as any).google.maps.event.clearInstanceListeners(boundaryRef.current);
       }
-      if (pathObj) {
-        (window as any).google.maps.event.clearInstanceListeners(pathObj);
+      if (pathObjRef.current) {
+        (window as any).google.maps.event.clearInstanceListeners(pathObjRef.current);
       }
     };
   }, [onBoundaryChange, onBoothPlace]);

@@ -18,24 +18,24 @@ type RequestData = z.infer<typeof requestSchema>;
 // Generate synthetic voter data (200 rows)
 function generateVoterRoll(
   constituencyName: string,
-  zones: Zone[]
+  zones: { id: string; name: string }[]
 ): string[][] {
   const firstNames = [
-    "Arjun","Priya","Ravi","Sunita","Vijay","Meena","Kiran","Deepa","Suresh","Anita",
-    "Mohammed","Fatima","Rajesh","Kavitha","Arun","Lakshmi","Dinesh","Saranya","Murugan","Yamini",
-    "James","Mary","Robert","Patricia","Michael","Jennifer","William","Linda","David","Barbara",
-    "Ahmed","Aisha","Omar","Fatou","Ibrahim","Amara","Yusuf","Zainab","Kofi","Abena",
+    "Arjun", "Priya", "Ravi", "Sunita", "Vijay", "Meena", "Kiran", "Deepa", "Suresh", "Anita",
+    "Mohammed", "Fatima", "Rajesh", "Kavitha", "Arun", "Lakshmi", "Dinesh", "Saranya", "Murugan", "Yamini",
+    "James", "Mary", "Robert", "Patricia", "Michael", "Jennifer", "William", "Linda", "David", "Barbara",
+    "Ahmed", "Aisha", "Omar", "Fatou", "Ibrahim", "Amara", "Yusuf", "Zainab", "Kofi", "Abena",
   ];
   const lastNames = [
-    "Kumar","Sharma","Patel","Singh","Reddy","Nair","Iyer","Rao","Shah","Verma",
-    "Khan","Ali","Ahmed","Rahman","Sheikh","Malik","Siddiqui","Ansari","Hussain","Akhtar",
-    "Smith","Johnson","Williams","Brown","Jones","Garcia","Miller","Davis","Wilson","Taylor",
-    "Mensah","Asante","Owusu","Osei","Boateng","Agyei","Amponsah","Darko","Amoah","Frimpong",
+    "Kumar", "Sharma", "Patel", "Singh", "Reddy", "Nair", "Iyer", "Rao", "Shah", "Verma",
+    "Khan", "Ali", "Ahmed", "Rahman", "Sheikh", "Malik", "Siddiqui", "Ansari", "Hussain", "Akhtar",
+    "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Wilson", "Taylor",
+    "Mensah", "Asante", "Owusu", "Osei", "Boateng", "Agyei", "Amponsah", "Darko", "Amoah", "Frimpong",
   ];
   const streets = [
-    "MG Road","Gandhi Nagar","Nehru Street","Rajaji Lane","Anna Salai",
-    "Park Avenue","High Street","Church Road","Lake View","Station Road",
-    "Market Lane","Temple Street","College Road","Hospital Road","Bus Stand Road",
+    "MG Road", "Gandhi Nagar", "Nehru Street", "Rajaji Lane", "Anna Salai",
+    "Park Avenue", "High Street", "Church Road", "Lake View", "Station Road",
+    "Market Lane", "Temple Street", "College Road", "Hospital Road", "Bus Stand Road",
   ];
 
   const zoneIds = zones.length > 0 ? zones.map((z) => z.id) : ["z1", "z2", "z3"];
@@ -188,7 +188,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           ],
         }),
       }
-    ).catch(() => {}); // non-critical
+    ).catch(() => { }); // non-critical
 
     // Share with user as reader
     await fetch(
@@ -205,7 +205,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           emailAddress: session.user.email,
         }),
       }
-    ).catch(() => {}); // non-critical
+    ).catch(() => { }); // non-critical
 
     // Zone breakdown
     const voterRows = rows.slice(1); // exclude header

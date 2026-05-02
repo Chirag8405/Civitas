@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { collection, getDocs, getFirestore, query } from "firebase/firestore";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
@@ -42,7 +42,7 @@ export default function ResultsPage() {
       const snap = await getDocs(query(votesRef));
       const fetchedVotes: VoteRecord[] = [];
       snap.forEach((doc) => fetchedVotes.push({ id: doc.id, ...doc.data() } as VoteRecord));
-      
+
       // We must apply dispute resolution if it exists in Zustand but wasn't applied to Firestore
       let finalVotes = fetchedVotes;
       results.disputes.forEach((d) => {
@@ -162,17 +162,17 @@ export default function ResultsPage() {
     return (
       <ErrorBoundary>
         <div className="flex flex-col items-center justify-start min-h-screen bg-paperCream p-12 text-center gap-10 relative overflow-y-auto w-full">
-          <h1 
-            style={{ fontFamily: 'var(--font-display)' }} 
+          <h1
+            style={{ fontFamily: 'var(--font-display)' }}
             className="text-5xl md:text-6xl font-bold text-inkNavy mt-8"
           >
             ELECTION DECLARED
           </h1>
-          
+
           {winner && (
             <div className="flex flex-col items-center gap-4 z-10">
-              <h2 
-                style={{ fontFamily: 'var(--font-display)' }} 
+              <h2
+                style={{ fontFamily: 'var(--font-display)' }}
                 className="text-4xl md:text-5xl font-bold text-inkNavy border-b-4 border-govGold pb-2"
               >
                 {winner.name}
@@ -194,8 +194,8 @@ export default function ResultsPage() {
 
           {results.slidesUrl && (
             <div className="w-full max-w-4xl aspect-video border-4 border-inkNavy shadow-xl z-10 bg-formWhite">
-              <iframe 
-                src={results.slidesUrl.replace("/edit", "/embed")} 
+              <iframe
+                src={results.slidesUrl.replace("/edit", "/embed")}
                 className="w-full h-full"
                 frameBorder="0"
                 allowFullScreen
@@ -205,7 +205,7 @@ export default function ResultsPage() {
 
           <div className="flex gap-6 z-10 mt-8 pb-16">
             {sheetUrl && (
-              <a 
+              <a
                 href={sheetUrl}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -233,8 +233,8 @@ export default function ResultsPage() {
     <ErrorBoundary>
       <main id="main" className="flex h-screen bg-paperCream flex-col overflow-y-auto relative">
         <div className="max-w-4xl mx-auto w-full p-10 flex flex-col gap-10">
-          <PageHeader 
-            title="OFFICIAL ELECTION RESULTS" 
+          <PageHeader
+            title="OFFICIAL ELECTION RESULTS"
             subtitle={constituency.name.toUpperCase()}
           />
 
@@ -266,28 +266,28 @@ export default function ResultsPage() {
           </div>
 
           <OfficialCard title="Candidate Totals" className="relative z-10">
-             <table className="w-full text-left font-mono text-sm text-inkNavy border-collapse">
-               <thead>
-                 <tr className="border-b-2 border-inkNavy">
-                   <th className="py-3 px-4">Candidate</th>
-                   <th className="py-3 px-4">Party</th>
-                   <th className="py-3 px-4 text-right">Votes</th>
-                   <th className="py-3 px-4 text-right">%</th>
-                 </tr>
-               </thead>
-               <tbody>
-                 {candidateCounts.map((c) => (
-                   <tr key={c.id} className="border-b border-ruleGray last:border-0">
-                     <td className="py-4 px-4 font-bold">{c.name}</td>
-                     <td className="py-4 px-4 text-midGray">{c.party}</td>
-                     <td className="py-4 px-4 text-right font-bold">{c.votes.toLocaleString()}</td>
-                     <td className="py-4 px-4 text-right text-midGray">
-                       {votes.length > 0 ? ((c.votes / votes.length) * 100).toFixed(1) : "0.0"}%
-                     </td>
-                   </tr>
-                 ))}
-               </tbody>
-             </table>
+            <table className="w-full text-left font-mono text-sm text-inkNavy border-collapse">
+              <thead>
+                <tr className="border-b-2 border-inkNavy">
+                  <th className="py-3 px-4">Candidate</th>
+                  <th className="py-3 px-4">Party</th>
+                  <th className="py-3 px-4 text-right">Votes</th>
+                  <th className="py-3 px-4 text-right">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {candidateCounts.map((c) => (
+                  <tr key={c.id} className="border-b border-ruleGray last:border-0">
+                    <td className="py-4 px-4 font-bold">{c.name}</td>
+                    <td className="py-4 px-4 text-midGray">{c.party}</td>
+                    <td className="py-4 px-4 text-right font-bold">{c.votes.toLocaleString()}</td>
+                    <td className="py-4 px-4 text-right text-midGray">
+                      {votes.length > 0 ? ((c.votes / votes.length) * 100).toFixed(1) : "0.0"}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </OfficialCard>
 
           {results.disputes.length > 0 && (
@@ -312,8 +312,8 @@ export default function ResultsPage() {
               disabled={certified || isCertifying}
               className={cn(
                 "px-8 py-4 font-mono font-bold text-lg uppercase tracking-widest transition-colors",
-                certified 
-                  ? "bg-midGray text-formWhite cursor-not-allowed" 
+                certified
+                  ? "bg-midGray text-formWhite cursor-not-allowed"
                   : "bg-govGold text-inkNavy hover:bg-yellow-600"
               )}
             >

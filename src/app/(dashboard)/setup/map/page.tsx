@@ -110,7 +110,8 @@ export default function MapPage() {
 
   const boothModeRef = React.useRef(boothMode);
   React.useEffect(() => { boothModeRef.current = boothMode; }, [boothMode]);
-
+  const gRef = React.useRef<any>(null);
+  const pathObjRef = React.useRef<any>(null);
   // ── Google Maps init ───────────────────────────────────────────────────────
   React.useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
@@ -134,6 +135,7 @@ export default function MapPage() {
     (window as any).__googleMapsLoaderPromise.then(() => {
       if (!mounted || !mapNodeRef.current) return;
       const g = (window as any).google;
+      gRef.current = g;
 
       const map = new g.maps.Map(mapNodeRef.current, {
         center: constituency.center ?? { lat: 20, lng: 78 },
@@ -182,6 +184,8 @@ export default function MapPage() {
 
       // Manual polygon drawing
       const pathObj = new g.maps.MVCArray();
+      pathObjRef.current = pathObj;
+
       const boundaryPolygon = new g.maps.Polygon({
         map: map,
         paths: [pathObj],
@@ -248,15 +252,17 @@ export default function MapPage() {
       });
       setMapReady(true);
     });
-    return () => { 
-      mounted = false; 
-      if (mapRef.current) {
+    return () => {
+      mounted = false;
+      const g = gRef.current;
+      const pathObj = pathObjRef.current;
+      if (g && mapRef.current) {
         g.maps.event.clearInstanceListeners(mapRef.current);
       }
-      if (boundaryPolygonRef.current) {
+      if (g && boundaryPolygonRef.current) {
         g.maps.event.clearInstanceListeners(boundaryPolygonRef.current);
       }
-      if (pathObj) {
+      if (g && pathObj) {
         g.maps.event.clearInstanceListeners(pathObj);
       }
     };
