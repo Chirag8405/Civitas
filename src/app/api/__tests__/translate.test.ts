@@ -27,6 +27,19 @@ describe('API /api/google/translate', () => {
     });
     process.env.GOOGLE_TRANSLATION_API_KEY = 'test-key';
     jest.clearAllMocks();
+    
+    // Silence console.error for expected errors
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    
+    // Default fetch mock to prevent real network calls
+    jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { translations: [{ translatedText: 'translated' }] } }),
+    } as Response);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('returns 401 without session', async () => {
@@ -44,7 +57,7 @@ describe('API /api/google/translate', () => {
   it('returns translated text map on success', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 't@t.com' } });
     
-    const mockFetch = jest.spyOn(global, 'fetch').mockResolvedValue({
+    (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({
         data: {
@@ -61,15 +74,14 @@ describe('API /api/google/translate', () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.translations).toEqual({ f1: 'Hello', f2: 'World' });
-    mockFetch.mockRestore();
   });
 
   it('returns 500 on Translation API failure', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 't@t.com' } });
     
-    const mockFetch = jest.spyOn(global, 'fetch').mockResolvedValue({
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
-      json: () => Promise.resolve({ error: 'API Error' }),
+      json: async () => ({ error: 'API Error' }),
     } as any);
 
     const res = await POST(mockRequest({
@@ -78,6 +90,6 @@ describe('API /api/google/translate', () => {
     }));
     
     expect(res.status).toBe(500);
-    mockFetch.mockRestore();
+    expect(console.error).toHaveBeenCalled();
   });
 });

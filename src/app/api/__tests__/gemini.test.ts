@@ -27,6 +27,19 @@ describe('API /api/gemini', () => {
     });
     process.env.GEMINI_API_KEY = 'test-key';
     jest.clearAllMocks();
+    
+    // Silence console.error for expected errors
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    
+    // Default fetch mock to prevent real network calls
+    jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: { message: 'API Error' } }),
+    } as Response);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('returns 401 without session', async () => {
@@ -44,7 +57,8 @@ describe('API /api/gemini', () => {
   it('returns 500 when Gemini API fails', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'gemini@test.com' } });
     
-    const mockFetch = jest.spyOn(global, 'fetch').mockResolvedValue({
+    // Specialized mock for this test
+    (global.fetch as jest.Mock).mockResolvedValue({
       ok: false,
       json: () => Promise.resolve({ error: { message: 'API Error' } })
     } as any);
@@ -53,13 +67,12 @@ describe('API /api/gemini', () => {
       messages: [{ role: 'user', content: 'hello' }] 
     }));
     expect(res.status).toBe(500);
-    mockFetch.mockRestore();
   });
 
   it('returns 200 on success and check response format', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'gemini@test.com' } });
     
-    const mockFetch = jest.spyOn(global, 'fetch').mockResolvedValue({
+    (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ 
         candidates: [{ content: { parts: [{ text: 'AI Response' }] } }] 
@@ -73,7 +86,6 @@ describe('API /api/gemini', () => {
     const data = await res.json();
     expect(data.content).toBe('AI Response');
     expect(data.advisoryRef).toMatch(/^CE-\d{4}$/);
-    mockFetch.mockRestore();
   });
 
   it('returns 429 when rate limit exceeded', async () => {
@@ -92,7 +104,7 @@ describe('API /api/gemini', () => {
   it('passes context correctly to Gemini prompt', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'context@test.com' } });
     
-    const mockFetch = jest.spyOn(global, 'fetch').mockResolvedValue({
+    (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ 
         candidates: [{ content: { parts: [{ text: 'OK' }] } }] 
@@ -104,12 +116,10 @@ describe('API /api/gemini', () => {
       context: { phase: 'polling', constituency: 'Mumbai' }
     }));
 
-    const fetchCall = mockFetch.mock.calls[0];
+    const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
     const body = JSON.parse(fetchCall[1].body);
     expect(body.systemInstruction.parts[0].text).toContain('polling');
     expect(body.systemInstruction.parts[0].text).toContain('Mumbai');
-    
-    mockFetch.mockRestore();
   });
 
   it('returns 500 when API key missing', async () => {

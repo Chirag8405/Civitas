@@ -68,6 +68,18 @@ describe('API /api/google/calendar', () => {
     mockFetch.mockRestore();
   });
 
+  it('action:create returns 200 with zero events when milestones array is empty', async () => {
+    (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'cal@test.com' } });
+    const res = await POST(mockRequest({ 
+      action: 'create', 
+      milestones: [],
+      constituencyName: 'Test'
+    }));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.eventCount).toBe(0);
+  });
+
   it('action:create returns mock when no accessToken', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'cal@test.com' } });
     const res = await POST(mockRequest({ 

@@ -56,7 +56,7 @@ describe('API /api/validate-constituency', () => {
     expect(res.status).toBe(400);
   });
 
-  it('returns valid:false when boundary has too few vertices', async () => {
+  it('returns 400 when boundary has too few vertices', async () => {
     const res = await POST(mockRequest({
       boundary: [{ lat: 0, lng: 0 }, { lat: 1, lng: 1 }],
       booths: [validBooth('1', 0.5, 0.5), validBooth('2', 0.5, 0.5), validBooth('3', 0.5, 0.5)],
@@ -80,6 +80,15 @@ describe('API /api/validate-constituency', () => {
     expect(data.errors).toContain('1 booth(s) are outside the constituency boundary.');
   });
 
+  it('returns 400 when zones array is empty', async () => {
+    const res = await POST(mockRequest({
+      boundary: validBoundary,
+      booths: [validBooth('1', 10.0005, 76.0005), validBooth('2', 10.0005, 76.0005), validBooth('3', 10.0005, 76.0005)],
+      zones: []
+    }));
+    expect(res.status).toBe(400);
+  });
+
   it('returns valid:true with correct data', async () => {
     const res = await POST(mockRequest({
       boundary: validBoundary,
@@ -89,6 +98,28 @@ describe('API /api/validate-constituency', () => {
         validBooth('3', 10.0008, 76.0008)
       ],
       zones: validZones
+    }));
+    const data = await res.json();
+    expect(data.valid).toBe(true);
+  });
+
+  it('test single point boundary returns 400', async () => {
+    const res = await POST(mockRequest({
+      boundary: [{ lat: 10, lng: 76 }],
+      booths: [validBooth('1', 10, 76), validBooth('2', 10, 76), validBooth('3', 10, 76)],
+      zones: validZones
+    }));
+    expect(res.status).toBe(400);
+  });
+
+  it('test overlapping zones logic (mock simulation of zone duplication)', async () => {
+    const res = await POST(mockRequest({
+      boundary: validBoundary,
+      booths: [validBooth('1', 10.0002, 76.0002), validBooth('2', 10.0005, 76.0005), validBooth('3', 10.0008, 76.0008)],
+      zones: [
+          { id: 'z1', name: 'Zone 1' },
+          { id: 'z1', name: 'Zone 1' }
+      ]
     }));
     const data = await res.json();
     expect(data.valid).toBe(true);

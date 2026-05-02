@@ -34,6 +34,11 @@ describe('API /api/google/slides', () => {
       POST = require('../google/slides/route').POST;
     });
     jest.clearAllMocks();
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('returns 401 without session', async () => {
@@ -62,7 +67,7 @@ describe('API /api/google/slides', () => {
       accessToken: 'mock-token'
     });
 
-    jest.spyOn(global, 'fetch').mockResolvedValue({
+    const mockFetch = jest.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ 
         presentationId: 'pres123',
@@ -74,5 +79,76 @@ describe('API /api/google/slides', () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.slidesUrl).toContain('pres123');
+    mockFetch.mockRestore();
+  });
+
+  it('handles empty candidateCounts and null winner gracefully', async () => {
+    (getServerSession as jest.Mock).mockResolvedValue({ 
+      user: { name: 'Test User', email: 't@t.com' },
+      accessToken: 'mock-token'
+    });
+
+    const mockFetch = jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ 
+        presentationId: 'presEmpty',
+        slides: [{ objectId: 's1' }]
+      })
+    } as any);
+
+    const body = {
+        ...validBody,
+        candidateCounts: [],
+        winner: null
+    };
+
+    const res = await POST(mockRequest(body));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.slidesUrl).toContain('presEmpty');
+    mockFetch.mockRestore();
+  });
+
+  it('logs error but returns slidesUrl when batchUpdate fails', async () => {
+    (getServerSession as jest.Mock).mockResolvedValue({ 
+      user: { name: 'Test User', email: 't@t.com' },
+      accessToken: 'mock-token'
+    });
+
+    const mockFetch = jest.spyOn(global, 'fetch').mockImplementation((url: any) => {
+        if (url.includes(':batchUpdate')) {
+            return Promise.resolve({
+                ok: false,
+                json: () => Promise.resolve({ error: 'Batch Failed' })
+            } as any);
+        }
+        return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ 
+                presentationId: 'presBatchFail',
+                slides: [{ objectId: 's1' }]
+            })
+        } as any);
+    });
+
+    const res = await POST(mockRequest(validBody));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.slidesUrl).toContain('presBatchFail');
+    expect(console.error).toHaveBeenCalled();
+    mockFetch.mockRestore();
+  });
+
+  it('returns 500 when presentation creation fails', async () => {
+    (getServerSession as jest.Mock).mockResolvedValue({ 
+      user: { name: 'Test User', email: 't@t.com' },
+      accessToken: 'mock-token'
+    });
+
+    const mockFetch = jest.spyOn(global, 'fetch').mockRejectedValue(new Error('Network Fail'));
+
+    const res = await POST(mockRequest(validBody));
+    expect(res.status).toBe(500);
+    mockFetch.mockRestore();
   });
 });
