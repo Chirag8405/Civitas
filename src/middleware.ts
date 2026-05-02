@@ -1,40 +1,30 @@
-import { withAuth } from "next-auth/middleware";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 
-export const middleware = withAuth(
-  function middleware(req: NextRequest) {
-    return undefined; // Allow request to proceed (auth already checked below)
-  },
-  {
-    callbacks: {
-      authorized: ({ token, req }) => {
-        const { pathname } = req.nextUrl;
+export async function middleware(req: NextRequest) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const { pathname } = req.nextUrl;
 
-        // /setup (step 1-3 onboarding) is always accessible to handle the landing flow
-        if (pathname === "/setup") {
-          return true;
-        }
+  const protectedPaths = [
+    "/dashboard",
+    "/calendar",
+    "/ballot",
+    "/polling",
+    "/results",
+    "/setup/map",
+    "/setup/voter-roll",
+  ];
 
-        // Require token for all dashboard + Act sub-pages
-        if (
-          pathname.startsWith("/dashboard") ||
-          pathname.startsWith("/calendar") ||
-          pathname.startsWith("/ballot") ||
-          pathname.startsWith("/polling") ||
-          pathname.startsWith("/setup/map") ||
-          pathname.startsWith("/setup/voter-roll")
-        ) {
-          return !!token;
-        }
+  const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
 
-        return true;
-      },
-    },
-    pages: {
-      signIn: "/login",
-    },
+  if (isProtected && !token) {
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(loginUrl);
   }
-);
+
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [
