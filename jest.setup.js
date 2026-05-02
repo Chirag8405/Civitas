@@ -1,2 +1,2 @@
 require('isomorphic-fetch');
-// Other polyfills if needed
+require('@testing-library/jest-dom');

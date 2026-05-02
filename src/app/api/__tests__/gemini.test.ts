@@ -56,7 +56,7 @@ describe('API /api/gemini', () => {
     mockFetch.mockRestore();
   });
 
-  it('returns 200 on success', async () => {
+  it('returns 200 on success and check response format', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'gemini@test.com' } });
     
     const mockFetch = jest.spyOn(global, 'fetch').mockResolvedValue({
@@ -72,6 +72,52 @@ describe('API /api/gemini', () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.content).toBe('AI Response');
+    expect(data.advisoryRef).toMatch(/^CE-\d{4}$/);
     mockFetch.mockRestore();
+  });
+
+  it('returns 429 when rate limit exceeded', async () => {
+    (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'ratelimit@test.com' } });
+    
+    // Call 10 times (limit is 10)
+    for (let i = 0; i < 10; i++) {
+        await POST(mockRequest({ messages: [{ role: 'user', content: 'h' }] }));
+    }
+    
+    // 11th call
+    const res = await POST(mockRequest({ messages: [{ role: 'user', content: 'h' }] }));
+    expect(res.status).toBe(429);
+  });
+
+  it('passes context correctly to Gemini prompt', async () => {
+    (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'context@test.com' } });
+    
+    const mockFetch = jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ 
+        candidates: [{ content: { parts: [{ text: 'OK' }] } }] 
+      })
+    } as any);
+
+    await POST(mockRequest({ 
+      messages: [{ role: 'user', content: 'hello' }],
+      context: { phase: 'polling', constituency: 'Mumbai' }
+    }));
+
+    const fetchCall = mockFetch.mock.calls[0];
+    const body = JSON.parse(fetchCall[1].body);
+    expect(body.systemInstruction.parts[0].text).toContain('polling');
+    expect(body.systemInstruction.parts[0].text).toContain('Mumbai');
+    
+    mockFetch.mockRestore();
+  });
+
+  it('returns 500 when API key missing', async () => {
+    delete process.env.GEMINI_API_KEY;
+    (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'nokey@test.com' } });
+    const res = await POST(mockRequest({ messages: [{ role: 'user', content: 'h' }] }));
+    expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.error).toBe('Server misconfiguration');
   });
 });

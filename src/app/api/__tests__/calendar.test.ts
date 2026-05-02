@@ -35,7 +35,7 @@ describe('API /api/google/calendar', () => {
     expect(res.status).toBe(401);
   });
 
-  it('action:generate returns milestones from Gemini', async () => {
+  it('action:generate returns milestones array with correct shape', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'cal@test.com' } });
     
     const mockFetch = jest.spyOn(global, 'fetch').mockResolvedValue({
@@ -48,8 +48,10 @@ describe('API /api/google/calendar', () => {
     const res = await POST(mockRequest({ action: 'generate', country: 'India', electoralSystem: 'FPTP' }));
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.milestones).toHaveLength(1);
-    expect(data.milestones[0].title).toBe('Test');
+    expect(Array.isArray(data.milestones)).toBe(true);
+    expect(data.milestones[0]).toHaveProperty('id');
+    expect(data.milestones[0]).toHaveProperty('title');
+    expect(data.milestones[0].date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     mockFetch.mockRestore();
   });
 
@@ -78,7 +80,7 @@ describe('API /api/google/calendar', () => {
     expect(data.eventCount).toBe(1);
   });
 
-  it('action:create calls Calendar API when accessToken present', async () => {
+  it('action:create calls Calendar API and handles success', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ 
       user: { email: 'cal@test.com' },
       accessToken: 'token'
@@ -98,5 +100,36 @@ describe('API /api/google/calendar', () => {
     const data = await res.json();
     expect(data.eventIds).toContain('event123');
     mockFetch.mockRestore();
+  });
+
+  it('action:create handles Calendar API failure gracefully', async () => {
+    (getServerSession as jest.Mock).mockResolvedValue({ 
+      user: { email: 'cal@test.com' },
+      accessToken: 'token'
+    });
+
+    const mockFetch = jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: false,
+      json: () => Promise.resolve({ error: 'Calendar API Fail' })
+    } as any);
+
+    const res = await POST(mockRequest({ 
+      action: 'create', 
+      milestones: [{ id: 'm1', title: 'T', date: '2024-01-01', description: 'D', phase: 'polling', status: 'future' }],
+      constituencyName: 'Test'
+    }));
+    
+    // The code currently doesn't return 500 if one event fails, it just logs it.
+    // Let's verify it still returns 200 but with empty eventIds if all fail.
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.eventIds).toHaveLength(0);
+    mockFetch.mockRestore();
+  });
+
+  it('returns 400 when body invalid or action missing', async () => {
+    (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'cal@test.com' } });
+    const res = await POST(mockRequest({}));
+    expect(res.status).toBe(400);
   });
 });

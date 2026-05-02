@@ -1,15 +1,26 @@
 import { startSimulation, stopSimulation } from '../simulation';
-import { getFirestore, collection, doc, writeBatch } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDocs } from 'firebase/firestore';
 
-jest.mock('firebase/firestore');
+jest.mock('firebase/firestore', () => ({
+  getFirestore: jest.fn(),
+  collection: jest.fn(),
+  doc: jest.fn(),
+  writeBatch: jest.fn(() => ({
+    set: jest.fn(),
+    commit: jest.fn().mockResolvedValue(undefined),
+  })),
+  serverTimestamp: jest.fn(() => ({ _seconds: 0 })),
+  getDocs: jest.fn().mockResolvedValue({ size: 0 }),
+}));
+
 jest.mock('../firebase', () => ({
   firebaseApp: {}
 }));
 
 describe('simulation lib', () => {
   const mockCandidates = [
-    { id: 'c1', name: 'Candidate 1', party: 'P1' },
-    { id: 'c2', name: 'Candidate 2', party: 'P2' },
+    { id: 'c1', name: 'Candidate 1', party: 'P1', votes: 0 },
+    { id: 'c2', name: 'Candidate 2', party: 'P2', votes: 0 },
   ];
   const userId = 'user123';
   const totalVoters = 100;
@@ -50,7 +61,7 @@ describe('simulation lib', () => {
     expect(clearIntervalSpy).toHaveBeenCalled();
   });
 
-  it('simulation cycle processes votes and triggers disputes', async () => {
+  it('simulation cycle processes votes and triggers disputes at 60%', async () => {
     const mockBatch = {
       set: jest.fn(),
       commit: jest.fn().mockResolvedValue(undefined),
@@ -59,13 +70,21 @@ describe('simulation lib', () => {
     (collection as jest.Mock).mockReturnValue({});
     (doc as jest.Mock).mockReturnValue({});
 
-    await startSimulation(userId, mockCandidates, 10);
+    // Small number to reach 60% quickly
+    const smallTotal = 10;
+    await startSimulation(userId, mockCandidates, smallTotal);
     
-    // Advance timers to trigger the interval
+    // First tick
+    jest.runOnlyPendingTimers();
+    // Second tick - should reach 6 votes (60%)
     jest.runOnlyPendingTimers();
 
-    expect(mockBatch.set).toHaveBeenCalled();
-    expect(mockBatch.commit).toHaveBeenCalled();
+    // Check if dispute was set
+    const disputeCall = mockBatch.set.mock.calls.find(call => 
+      call[1] && call[1].reason === 'Polling station opened late'
+    );
+    expect(disputeCall).toBeDefined();
+    expect(disputeCall[1].zone).toBe('Zone 3');
   });
 
   it('stopSimulation clears interval', () => {
@@ -79,5 +98,49 @@ describe('simulation lib', () => {
     const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
     stopSimulation();
     expect(clearIntervalSpy).not.toHaveBeenCalled();
+  });
+
+  it('handles write errors gracefully', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const mockBatch = {
+      set: jest.fn(),
+      commit: jest.fn().mockRejectedValue(new Error('Firestore Error')),
+    };
+    (writeBatch as jest.Mock).mockReturnValue(mockBatch);
+
+    await startSimulation(userId, mockCandidates, 10);
+    jest.runOnlyPendingTimers();
+    
+    // Wait for promise resolution
+    await Promise.resolve();
+    await Promise.resolve();
+    
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('failed'), expect.any(Error));
+    consoleSpy.mockRestore();
+  });
+
+  it('logic test: getZone and pickCandidate coverage', async () => {
+    // This is hard to test directly because they are private to startSimulation
+    // but we can infer them from the data passed to batch.set
+    const mockBatch = {
+      set: jest.fn(),
+      commit: jest.fn().mockResolvedValue(undefined),
+    };
+    (writeBatch as jest.Mock).mockReturnValue(mockBatch);
+
+    await startSimulation(userId, mockCandidates, 100);
+    
+    // Run multiple ticks to get different zones
+    for(let i=0; i<10; i++) {
+        jest.runOnlyPendingTimers();
+    }
+
+    const setCalls = mockBatch.set.mock.calls;
+    const zones = setCalls.map(c => c[1]?.zoneId).filter(Boolean);
+    const candidateIds = setCalls.map(c => c[1]?.candidateId).filter(Boolean);
+
+    expect(zones).toContain('Zone 1');
+    // Depending on random batches, we might see Zone 2/3
+    expect(candidateIds.every(id => ['c1', 'c2'].includes(id))).toBe(true);
   });
 });
