@@ -7,6 +7,7 @@ export interface OfficialCardProps {
 	children: React.ReactNode;
 	status?: "active" | "default";
 	className?: string;
+	titleId?: string;
 }
 
 export function OfficialCard({
@@ -14,6 +15,7 @@ export function OfficialCard({
 	children,
 	status = "default",
 	className,
+	titleId,
 }: OfficialCardProps) {
 	return (
 		<section
@@ -23,7 +25,7 @@ export function OfficialCard({
 				className
 			)}
 		>
-			<div className="flex h-10 items-center border-b-2 border-inkNavy bg-inkNavy px-4 text-[11px] font-mono uppercase tracking-[0.12em] text-formWhite">
+			<div id={titleId} className="flex h-10 items-center border-b-2 border-inkNavy bg-inkNavy px-4 text-[11px] font-mono uppercase tracking-[0.12em] text-formWhite">
 				{title}
 			</div>
 			<div className="p-6">{children}</div>

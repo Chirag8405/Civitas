@@ -94,9 +94,10 @@ function SortableCandidateCard({
               )}
             </div>
             <div className="flex-1">
-              <label className="block mb-1.5">
+              <label className="block mb-1.5" htmlFor={`photo-${candidate.id}`}>
                 <span className="font-mono text-[10px] uppercase tracking-widest text-midGray">Photo URL</span>
                 <OfficialInput
+                  id={`photo-${candidate.id}`}
                   value={candidate.photoUrl ?? ""}
                   onChange={(e) => onUpdate(candidate.id, "photoUrl", e.target.value)}
                   placeholder="https://…"
@@ -108,9 +109,10 @@ function SortableCandidateCard({
           </div>
 
           {/* Name */}
-          <label className="block">
+          <label className="block" htmlFor={`name-${candidate.id}`}>
             <span className="font-mono text-[10px] uppercase tracking-widest text-midGray">Full Name *</span>
             <OfficialInput
+              id={`name-${candidate.id}`}
               value={candidate.name}
               onChange={(e) => onUpdate(candidate.id, "name", e.target.value)}
               placeholder="Candidate full name"
@@ -120,9 +122,10 @@ function SortableCandidateCard({
           </label>
 
           {/* Party */}
-          <label className="block">
+          <label className="block" htmlFor={`party-${candidate.id}`}>
             <span className="font-mono text-[10px] uppercase tracking-widest text-midGray">Party / Independent *</span>
             <OfficialInput
+              id={`party-${candidate.id}`}
               value={candidate.party}
               onChange={(e) => onUpdate(candidate.id, "party", e.target.value)}
               placeholder="Party name or INDEPENDENT"
@@ -132,9 +135,10 @@ function SortableCandidateCard({
           </label>
 
           {/* Manifesto */}
-          <label className="block">
+          <label className="block" htmlFor={`manifesto-${candidate.id}`}>
             <span className="font-mono text-[10px] uppercase tracking-widest text-midGray">Manifesto Summary</span>
             <OfficialTextarea
+              id={`manifesto-${candidate.id}`}
               value={candidate.manifesto ?? ""}
               onChange={(e) => onUpdate(candidate.id, "manifesto", e.target.value)}
               placeholder="Brief manifesto or policy statement"
@@ -216,7 +220,7 @@ export default function CandidatesPage() {
         onSignOut={() => router.push("/login")}
       />
 
-      <main className="ml-60 flex-1 p-10">
+      <main id="main" className="ml-60 flex-1 p-10">
         <PageHeader
           title="Candidate Registration"
           subtitle={`${constituency.name || "Constituency"} — Official Nominations`}

@@ -24,7 +24,7 @@ export function BallotCounter({
 	const defaultLabel = `${current} / ${total} VOTES CAST`;
 
 	return (
-		<div className={cn("flex flex-col items-center gap-4", className)}>
+		<div className={cn("flex flex-col items-center gap-4", className)} aria-live="polite" aria-atomic="true">
 			<svg
 				viewBox="0 0 120 120"
 				className="h-24 w-24"

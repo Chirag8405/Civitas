@@ -32,7 +32,12 @@ export default function RootLayout({
       lang="en"
       className={`h-full ${playfairDisplay.variable} ${ibmPlexMono.variable}`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-inkNavy focus:text-formWhite focus:px-4 focus:py-2 focus:font-mono focus:text-xs">
+          Skip to main content
+        </a>
+        {children}
+      </body>
     </html>
   );
 }

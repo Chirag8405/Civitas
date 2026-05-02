@@ -48,6 +48,8 @@ export function StampBadge({ variant, text, rotate }: StampBadgeProps) {
 
   return (
     <span
+      role="status"
+      aria-label={variant}
       className={cn(
         "inline-block border-2 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.15em]",
         "rounded-none",

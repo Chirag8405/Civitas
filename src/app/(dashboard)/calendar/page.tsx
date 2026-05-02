@@ -100,7 +100,7 @@ export default function CalendarPage() {
         onSignOut={() => router.push("/login")}
       />
 
-      <main className="ml-60 flex-1 p-10">
+      <main id="main" className="ml-60 flex-1 p-10">
         <PageHeader
           title="Election Calendar"
           subtitle={`${constituency.name || "Constituency"} · ${constituency.country}`}

@@ -268,7 +268,7 @@ export default function PollingPage() {
       </aside>
 
       {/* CENTRE: Live Count (50%) */}
-      <main className="w-2/4 shrink-0 flex flex-col overflow-y-auto p-10 gap-10">
+      <main id="main" className="w-2/4 shrink-0 flex flex-col overflow-y-auto p-10 gap-10">
         <div className="flex items-center justify-between border-b-4 border-officialRed pb-4">
           <div className="space-y-2">
             <h1 className="text-3xl font-bold text-inkNavy">POLLING DAY — LIVE COUNT</h1>
@@ -346,10 +346,11 @@ export default function PollingPage() {
 
       {/* DISPUTE MODAL */}
       {pendingDispute && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-inkNavy/60 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-inkNavy/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="dispute-title">
           <OfficialCard
             title={`DISPUTE FILED — ${pendingDispute.zone}`}
             className="w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            titleId="dispute-title"
           >
             <div className="flex flex-col gap-6">
               <div className="flex justify-between items-start">

@@ -345,6 +345,7 @@ Return a JSON array of flag strings (issues only, empty array if none). No markd
       />
 
       <main
+        id="main"
         className={cn(
           "ml-60 flex-1 p-10 transition-[margin] duration-200 ease-in-out",
           advisorOpen ? "mr-[400px]" : "mr-0"
@@ -376,18 +377,20 @@ Return a JSON array of flag strings (issues only, empty array if none). No markd
           <div className="flex-[2] min-w-0 space-y-5">
             <OfficialCard title="Ballot Controls">
               <div className="space-y-4">
-                <label className="block">
+                <label className="block" htmlFor="ballot-title">
                   <span className="font-mono text-[10px] uppercase tracking-widest text-midGray">Election Title</span>
                   <OfficialInput
+                    id="ballot-title"
                     value={ballotTitle}
                     onChange={(e) => setBallotTitle(e.target.value)}
                     disabled={certified}
                     className="mt-1 text-sm"
                   />
                 </label>
-                <label className="block">
+                <label className="block" htmlFor="ballot-instructions">
                   <span className="font-mono text-[10px] uppercase tracking-widest text-midGray">Voting Instructions</span>
                   <OfficialTextarea
+                    id="ballot-instructions"
                     value={instructions}
                     onChange={(e) => setInstructions(e.target.value)}
                     disabled={certified}

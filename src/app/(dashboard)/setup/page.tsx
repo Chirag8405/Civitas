@@ -107,7 +107,7 @@ export default function SetupPage() {
         onSignOut={() => router.push("/login")}
       />
 
-      <main className="ml-60 flex-1 p-12">
+      <main id="main" className="ml-60 flex-1 p-12">
         <PageHeader
           title="Electoral Setup"
           subtitle="Configure your constituency and election parameters"
@@ -172,8 +172,9 @@ export default function SetupPage() {
                 Enter the name or description of your electoral constituency
               </p>
 
-              <FormField label="Neighbourhood Name">
+              <FormField label="Neighbourhood Name" htmlFor="neighbourhood">
                 <input
+                  id="neighbourhood"
                   type="text"
                   value={neighbourhood}
                   onChange={(e) => handleNeighbourhoodInput(e.target.value)}

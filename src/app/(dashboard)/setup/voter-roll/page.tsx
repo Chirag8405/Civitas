@@ -143,6 +143,7 @@ export default function VoterRollPage() {
       />
 
       <main
+        id="main"
         className={cn(
           "ml-60 flex-1 p-10 transition-[margin] duration-200 ease-in-out",
           advisorOpen ? "mr-[400px]" : "mr-0"

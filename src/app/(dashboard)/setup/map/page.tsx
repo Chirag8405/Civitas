@@ -175,6 +175,7 @@ export default function MapPage() {
           const z = map.getZoom() ?? 12;
           map.setZoom(i === 0 ? z + 1 : z - 1);
         });
+        btn.setAttribute("aria-label", i === 0 ? "Zoom in" : "Zoom out");
         zoomDiv.appendChild(btn);
       });
       map.controls[g.maps.ControlPosition.RIGHT_BOTTOM].push(zoomDiv);
@@ -493,6 +494,7 @@ export default function MapPage() {
                   <input
                     type="text"
                     value={zone.name}
+                    aria-label={`Zone ${zone.id} name`}
                     onChange={(e) =>
                       setZones((prev) =>
                         prev.map((z) =>
@@ -577,7 +579,7 @@ export default function MapPage() {
                     <button
                       onClick={() => setDismissedWarnings((s) => new Set([...s, w]))}
                       className="shrink-0 font-mono text-[10px] text-midGray border border-ruleGray px-1 hover:border-inkNavy"
-                      title="Dismiss"
+                      aria-label="Dismiss warning"
                     >
                       ✕
                     </button>

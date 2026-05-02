@@ -17,7 +17,7 @@ export default async function RootPage() {
 
   // Unauthenticated — render the landing page (redirect to /login on CTA)
   return (
-    <main className="min-h-screen bg-paperCream flex flex-col">
+    <main id="main" className="min-h-screen bg-paperCream flex flex-col">
       {/* ── Top rule ─────────────────────────────────────────────────────── */}
       <div className="h-1 w-full bg-officialRed" />
 

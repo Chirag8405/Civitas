@@ -149,7 +149,7 @@ export default function TranslatePage() {
         onSignOut={() => router.push("/login")}
       />
 
-      <main className="ml-60 flex-1 p-10">
+      <main id="main" className="ml-60 flex-1 p-10">
         <PageHeader
           title="Ballot Translation"
           subtitle={`${constituency.name} · Minority Language: ${targetLang.name}`}

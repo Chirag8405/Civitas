@@ -223,7 +223,7 @@ export default function ResultsPage() {
   }
 
   return (
-    <div className="flex h-screen bg-paperCream flex-col overflow-y-auto relative">
+    <main id="main" className="flex h-screen bg-paperCream flex-col overflow-y-auto relative">
       <div className="max-w-4xl mx-auto w-full p-10 flex flex-col gap-10">
         <PageHeader 
           title="OFFICIAL ELECTION RESULTS" 
@@ -313,6 +313,6 @@ export default function ResultsPage() {
           </button>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
