@@ -27,15 +27,46 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     async jwt({ token, account }) {
-      // Persist the OAuth access token on first sign-in
-      if (account?.access_token) {
+      // First sign in — store tokens
+      if (account) {
         token.accessToken = account.access_token;
+        token.refreshToken = account.refresh_token;
+        token.accessTokenExpires = account.expires_at ? account.expires_at * 1000 : Date.now() + 3600000;
+        return token;
       }
-      return token;
+
+      // Token still valid
+      if (Date.now() < (token.accessTokenExpires as number)) {
+        return token;
+      }
+
+      // Token expired — refresh it
+      try {
+        const res = await fetch("https://oauth2.googleapis.com/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_id: process.env.GOOGLE_CLIENT_ID!,
+            client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+            grant_type: "refresh_token",
+            refresh_token: token.refreshToken as string,
+          }),
+        });
+        const refreshed = await res.json();
+        if (!res.ok) throw refreshed;
+        token.accessToken = refreshed.access_token;
+        token.accessTokenExpires = Date.now() + refreshed.expires_in * 1000;
+        return token;
+      } catch (e) {
+        console.error("Token refresh failed:", e);
+        token.error = "RefreshAccessTokenError";
+        return token;
+      }
     },
     async session({ session, token }) {
       // Forward access token to the session object
       (session as any).accessToken = token.accessToken;
+      (session as any).error = token.error;
       return session;
     },
   },
