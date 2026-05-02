@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
-interface ElectoralSystemRequest {
-  country: string;
-  neighbourhood: string;
-}
+const requestSchema = z.object({
+  country: z.string().min(1),
+  neighbourhood: z.string().optional(),
+});
+
+type RequestData = z.infer<typeof requestSchema>;
 
 interface ElectoralSystemResponse {
   system: string;
@@ -107,7 +110,7 @@ Respond in valid JSON only. Keep all string values under 100 characters. No line
   const groundingChunks =
     data?.candidates?.[0]?.groundingMetadata?.groundingChunks;
   if (groundingChunks?.length) {
-    parsed.groundingSource = groundingChunks[0]?.web?.uri ?? undefined;
+    parsed.groundingSource = (groundingChunks[0]?.web as { uri?: string })?.uri ?? undefined;
   }
 
   return parsed;
@@ -115,15 +118,17 @@ Respond in valid JSON only. Keep all string values under 100 characters. No line
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    const body: ElectoralSystemRequest = await req.json();
-    const { country, neighbourhood } = body;
+    const bodyJson = await req.json();
+    const result = requestSchema.safeParse(bodyJson);
 
-    if (!country) {
+    if (!result.success) {
       return NextResponse.json(
-        { error: "country is required" },
+        { error: "Invalid request body", details: result.error.issues },
         { status: 400 }
       );
     }
+
+    const { country, neighbourhood = "" } = result.data;
 
     const apiKey = process.env.GEMINI_API_KEY;
 
@@ -132,7 +137,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       try {
         const result = await fetchFromGemini(
           country,
-          neighbourhood ?? "",
+          neighbourhood,
           apiKey
         );
         return NextResponse.json(result);

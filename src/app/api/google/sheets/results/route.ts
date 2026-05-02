@@ -1,6 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { z } from "zod";
+
+const requestSchema = z.object({
+  constituencyName: z.string().min(1),
+  candidateCounts: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    party: z.string(),
+    votes: z.number(),
+  })),
+  winner: z.object({
+    id: z.string(),
+    name: z.string(),
+    party: z.string(),
+    votes: z.number(),
+  }).nullable(),
+});
+
+type RequestData = z.infer<typeof requestSchema>;
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,13 +28,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { constituencyName, candidateCounts, winner } = body;
-    const accessToken = (session as any)?.accessToken as string | undefined;
+    const bodyJson = await req.json();
+    const result = requestSchema.safeParse(bodyJson);
 
-    if (!constituencyName) {
-      return NextResponse.json({ error: "Missing constituency name" }, { status: 400 });
+    if (!result.success) {
+      return NextResponse.json(
+        { error: "Invalid request body", details: result.error.issues },
+        { status: 400 }
+      );
     }
+
+    const { constituencyName, candidateCounts, winner } = result.data;
+    const accessToken = (session as { accessToken?: string })?.accessToken;
 
     if (!accessToken) {
       return NextResponse.json({
@@ -41,7 +65,7 @@ export async function POST(req: NextRequest) {
 
     const rows = [
       ["Candidate Name", "Party", "Votes"],
-      ...candidateCounts.map((c: any) => [c.name, c.party, String(c.votes)]),
+      ...candidateCounts.map((c) => [c.name, c.party, String(c.votes)]),
       [],
       ["Winner:", winner?.name || "N/A"],
     ];
@@ -65,7 +89,8 @@ export async function POST(req: NextRequest) {
     }).catch(() => {});
 
     return NextResponse.json({ sheetUrl });
-  } catch (err) {
+  } catch (err: unknown) {
+    console.error("Sheets results error:", err);
     return NextResponse.json({ error: "Failed to generate results sheet" }, { status: 500 });
   }
 }

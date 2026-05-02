@@ -5,9 +5,21 @@ import { z } from "zod";
 
 const requestSchema = z.object({
   constituencyName: z.string().min(1),
-  candidateCounts: z.array(z.any()),
-  winner: z.any().nullable(),
+  candidateCounts: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    party: z.string(),
+    votes: z.number(),
+  })),
+  winner: z.object({
+    id: z.string(),
+    name: z.string(),
+    party: z.string(),
+    votes: z.number(),
+  }).nullable(),
 });
+
+type RequestData = z.infer<typeof requestSchema>;
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,7 +39,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { constituencyName, candidateCounts, winner } = result.data;
-    const accessToken = (session as any)?.accessToken as string | undefined;
+    const accessToken = (session as { accessToken?: string })?.accessToken;
 
     if (!accessToken) {
       return NextResponse.json({
@@ -95,7 +107,7 @@ export async function POST(req: NextRequest) {
       { insertText: { objectId: "s2title", insertionIndex: 0, text: "VOTE COUNT — OFFICIAL RESULTS" } },
       { updateTextStyle: { objectId: "s2title", textRange: { type: "ALL" }, style: { foregroundColor: { opaqueColor: { rgbColor: { red: 0.96, green: 0.94, blue: 0.91 } } }, fontSize: { magnitude: 22, unit: "PT" }, bold: true }, fields: "foregroundColor,fontSize,bold" } },
       // Slide 2 results body — one textbox per candidate
-      ...candidateCounts.map((c: any, i: number) => [
+      ...candidateCounts.map((c, i: number) => [
         { createShape: { objectId: `s2cand${i}`, shapeType: "TEXT_BOX", elementProperties: { pageObjectId: "slide2", size: { width: { magnitude: 580, unit: "PT" }, height: { magnitude: 40, unit: "PT" } }, transform: { scaleX: 1, scaleY: 1, translateX: 50, translateY: 120 + i * 50, unit: "PT" } } } },
         { insertText: { objectId: `s2cand${i}`, insertionIndex: 0, text: `${c.name}  |  ${c.party}  |  ${c.votes} votes` } },
         { updateTextStyle: { objectId: `s2cand${i}`, textRange: { type: "ALL" }, style: { foregroundColor: { opaqueColor: { rgbColor: { red: 0.96, green: 0.94, blue: 0.91 } } }, fontSize: { magnitude: 16, unit: "PT" } }, fields: "foregroundColor,fontSize" } },
@@ -132,8 +144,9 @@ export async function POST(req: NextRequest) {
     }).catch(() => { });
 
     return NextResponse.json({ slidesUrl });
-  } catch (err: any) {
-    console.error("Slides error:", err);
-    return NextResponse.json({ error: "Failed to generate slides: " + err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const error = err as Error;
+    console.error("Slides error:", error);
+    return NextResponse.json({ error: "Failed to generate slides: " + error.message }, { status: 500 });
   }
 }

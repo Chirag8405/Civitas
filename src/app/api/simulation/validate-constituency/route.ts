@@ -1,11 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { LatLng, PollingBooth, Zone } from "@/types";
+import { z } from "zod";
 
-interface ValidateRequest {
-  boundary: LatLng[];
-  booths: PollingBooth[];
-  zones: Zone[];
-}
+const latLngSchema = z.object({
+  lat: z.number(),
+  lng: z.number(),
+});
+
+const requestSchema = z.object({
+  boundary: z.array(latLngSchema).min(3),
+  booths: z.array(z.object({
+    id: z.string(),
+    location: latLngSchema,
+    name: z.string(),
+  })).min(3),
+  zones: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+  })).min(1),
+});
+
+type RequestData = z.infer<typeof requestSchema>;
 
 function haversineKm(a: LatLng, b: LatLng): number {
   const R = 6371;
@@ -58,18 +73,27 @@ function samplePolygonPoints(boundary: LatLng[], count = 20): LatLng[] {
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    const body: ValidateRequest = await req.json();
-    const { boundary, booths, zones } = body;
+    const bodyJson = await req.json();
+    const result = requestSchema.safeParse(bodyJson);
+
+    if (!result.success) {
+      return NextResponse.json(
+        { valid: false, errors: result.error.issues.map(i => `${i.path.join(".")}: ${i.message}`) },
+        { status: 400 }
+      );
+    }
+
+    const { boundary, booths, zones } = result.data;
 
     const errors: string[] = [];
 
-    // 1. Exactly 3 booths
-    if (!booths || booths.length < 3) {
-      errors.push(`At least 3 polling booths required. ${booths?.length ?? 0} provided.`);
+    // 1. Exactly 3 booths (redundant with zod but keeping logic)
+    if (booths.length < 3) {
+      errors.push(`At least 3 polling booths required. ${booths.length} provided.`);
     }
 
-    // 2. Boundary has enough vertices
-    if (!boundary || boundary.length < 3) {
+    // 2. Boundary has enough vertices (redundant with zod but keeping logic)
+    if (boundary.length < 3) {
       errors.push("Constituency boundary must have at least 3 vertices.");
     }
 
@@ -90,8 +114,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 4. At least one zone defined
-    if (!zones || zones.length === 0) {
+    // 4. At least one zone defined (redundant with zod but keeping logic)
+    if (zones.length === 0) {
       errors.push("At least one electoral zone must be defined.");
     }
 

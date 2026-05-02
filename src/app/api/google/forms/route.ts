@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import type { Candidate } from "@/types";
+import { z } from "zod";
+
+const requestSchema = z.object({
+  constituencyName: z.string().min(1),
+  candidates: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    party: z.string(),
+  })).min(2),
+});
+
+type RequestData = z.infer<typeof requestSchema>;
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -10,20 +21,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { constituencyName, candidates } = body as {
-      constituencyName: string;
-      candidates: Candidate[];
-    };
+    const bodyJson = await req.json();
+    const result = requestSchema.safeParse(bodyJson);
 
-    if (!candidates || candidates.length < 2) {
+    if (!result.success) {
       return NextResponse.json(
-        { error: "At least 2 candidates required" },
+        { error: "Invalid request body", details: result.error.issues },
         { status: 400 }
       );
     }
 
-    const accessToken = (session as any)?.accessToken as string | undefined;
+    const { constituencyName, candidates } = result.data;
+
+    const accessToken = (session as { accessToken?: string })?.accessToken;
     const formTitle = `${constituencyName} — Official Ballot`;
 
     if (!accessToken) {
@@ -55,7 +65,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     if (!createRes.ok) {
       const err = await createRes.json();
-      console.error("[forms] Create error:", err);
       return NextResponse.json(
         { error: "Failed to create Google Form", details: err },
         { status: 500 }
@@ -122,8 +131,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     if (!batchRes.ok) {
       const err = await batchRes.json();
-      console.error("[forms] BatchUpdate error:", err);
-      // Return formUrl anyway — form was created, questions failed
       return NextResponse.json({ formId, formUrl, partialError: err });
     }
 

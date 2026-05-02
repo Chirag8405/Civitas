@@ -7,8 +7,13 @@ import { z } from "zod";
 const requestSchema = z.object({
   constituencyName: z.string().min(1),
   country: z.string().optional(),
-  zones: z.array(z.any()).optional(),
+  zones: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+  })).optional(),
 });
+
+type RequestData = z.infer<typeof requestSchema>;
 
 // Generate synthetic voter data (200 rows)
 function generateVoterRoll(
@@ -80,7 +85,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const { constituencyName, country, zones = [] } = result.data;
 
-    const accessToken = (session as any)?.accessToken as string | undefined;
+    const accessToken = (session as { accessToken?: string })?.accessToken;
 
     // If no real OAuth token, return a mock response (graceful degradation)
     if (!accessToken) {
@@ -90,7 +95,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         mock: true,
         message:
           "Voter roll generated in-memory. Re-authenticate with Google to persist to Sheets.",
-        zones: zones.map((z: any) => ({
+        zones: zones.map((z) => ({
           id: z.id,
           name: z.name,
           voterCount: Math.floor(200 / (zones.length || 1)),
@@ -204,7 +209,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // Zone breakdown
     const voterRows = rows.slice(1); // exclude header
-    const zoneBreakdown = zones.map((z: any) => ({
+    const zoneBreakdown = zones.map((z) => ({
       id: z.id,
       name: z.name,
       voterCount: voterRows.filter((r) => r[3] === z.id).length,

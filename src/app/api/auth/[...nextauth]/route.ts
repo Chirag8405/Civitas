@@ -65,9 +65,10 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       // Forward access token to the session object
-      (session as any).accessToken = token.accessToken;
-      (session as any).error = token.error;
-      return session;
+      const s = session as typeof session & { accessToken?: string; error?: string };
+      s.accessToken = token.accessToken as string;
+      s.error = token.error as string;
+      return s;
     },
   },
 };

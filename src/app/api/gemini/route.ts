@@ -11,8 +11,13 @@ const requestSchema = z.object({
       content: z.string(),
     })
   ),
-  context: z.object({}).passthrough().optional(),
+  context: z.object({
+    phase: z.string(),
+    constituency: z.string(),
+  }).passthrough().optional(),
 });
+
+type RequestData = z.infer<typeof requestSchema>;
 
 const RATE_LIMIT = {
   maxRequests: 10,
@@ -97,7 +102,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Build context-aware system prompt
     let systemPrompt = SYSTEM_PROMPT;
     if (context) {
-      systemPrompt += `\n\n[CURRENT CONTEXT]\nPhase: ${(context as any).phase}\nConstituency: ${(context as any).constituency}`;
+      systemPrompt += `\n\n[CURRENT CONTEXT]\nPhase: ${context.phase}\nConstituency: ${context.constituency}`;
     }
 
     // Format messages for Gemini API

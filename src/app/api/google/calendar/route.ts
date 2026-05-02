@@ -12,10 +12,19 @@ const requestSchema = z.discriminatedUnion("action", [
   }),
   z.object({
     action: z.literal("create"),
-    milestones: z.array(z.any()),
+    milestones: z.array(z.object({
+      id: z.string(),
+      date: z.string(),
+      title: z.string(),
+      description: z.string(),
+      phase: z.enum(["registration", "campaign", "polling", "results"]),
+      status: z.enum(["past", "current", "future"]),
+    })),
     constituencyName: z.string().min(1),
   }),
 ]);
+
+type RequestData = z.infer<typeof requestSchema>;
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 function todayPlus(days: number): string {
@@ -124,20 +133,20 @@ Use realistic dates spread over 45 days from today. First milestone should be "p
     // ── CREATE: Google Calendar API v3 event series ────────────────────────
     if (body.action === "create") {
       const { milestones, constituencyName } = body;
-      const accessToken = (session as any)?.accessToken as string | undefined;
+      const accessToken = (session as { accessToken?: string })?.accessToken;
 
       if (!accessToken) {
         return NextResponse.json({
           mock: true,
           calendarId: "primary",
-          eventCount: (milestones as any[]).length,
+          eventCount: milestones.length,
           message: "No Google access token. Re-authenticate to sync real calendar events.",
         });
       }
 
       const createdEventIds: string[] = [];
 
-      for (const m of (milestones as any[])) {
+      for (const m of milestones) {
         const eventRes = await fetch(
           "https://www.googleapis.com/calendar/v3/calendars/primary/events",
           {
