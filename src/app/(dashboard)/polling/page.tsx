@@ -19,12 +19,13 @@ import type { VoteRecord } from "@/types";
 import { cn } from "@/lib/utils";
 
 const ELECTION_ID = "demo-election";
-const TOTAL_VOTERS = 5000;
+const TOTAL_VOTERS = 200;
 
 export default function PollingPage() {
   const { election, constituency, results, updateResults } = useSimulationStore();
   const [votes, setVotes] = useState<VoteRecord[]>([]);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState("");
+  const simulationStarted = React.useRef(false);
 
   // Disputes
   const [pendingDispute, setPendingDispute] = useState<any>(null);
@@ -36,11 +37,21 @@ export default function PollingPage() {
   const [advisorLoading, setAdvisorLoading] = useState(false);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    setCurrentTime(new Date().toLocaleTimeString());
+    const timer = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000);
     return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
+    return () => {
+      if (simulationStarted.current) {
+        stopSimulation();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log("Candidates available:", election.candidates);
     // Sub to Firestore
     const db = getFirestore(firebaseApp);
     const votesRef = collection(db, "elections", ELECTION_ID, "votes");
@@ -66,16 +77,18 @@ export default function PollingPage() {
     });
 
     // Start simulation if we have candidates
-    if (election.candidates.length > 0) {
-      startSimulation(ELECTION_ID, election.candidates, TOTAL_VOTERS);
+    const candidates = useSimulationStore.getState().election.candidates;
+    if (candidates.length > 0 && !simulationStarted.current) {
+      simulationStarted.current = true;
+      console.log("startSimulation firing with", candidates.length, "candidates");
+      startSimulation(ELECTION_ID, candidates, TOTAL_VOTERS);
     }
 
     return () => {
       unsubVotes();
       unsubDisputes();
-      stopSimulation();
     };
-  }, [election.candidates]);
+  }, []);
 
   // Query Gemini for dispute
   useEffect(() => {
@@ -104,46 +117,52 @@ export default function PollingPage() {
   }, [pendingDispute, disputeAdvisory, advisoryLoading, constituency.country, constituency.name]);
 
   const handleRuling = async (resolution: "ACCEPT" | "REJECT") => {
+    console.log("Ruling clicked:", resolution);
     if (!pendingDispute) return;
+
+    const dispute = pendingDispute;
+    setPendingDispute(null);
+    setDisputeAdvisory("");
 
     // Update Firestore dispute status
     const db = getFirestore(firebaseApp);
-    const docRef = doc(db, "elections", ELECTION_ID, "disputes", pendingDispute.id);
-    await updateDoc(docRef, {
-      status: "RESOLVED",
-      resolution,
-    });
+    const docRef = doc(db, "elections", ELECTION_ID, "disputes", dispute.id);
+    try {
+      await Promise.race([
+        updateDoc(docRef, { status: "RESOLVED", resolution }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000))
+      ]);
+    } catch (e) {
+      console.error("Dispute update failed:", e);
+    }
 
     // Adjust vote count in Zustand
     let adjustedVotes = [...votes];
     if (resolution === "REJECT") {
       let removed = 0;
       adjustedVotes = adjustedVotes.filter((v) => {
-        if (v.zoneId === pendingDispute.zone && removed < pendingDispute.votesAffected) {
+        if (v.zoneId === dispute.zone && removed < dispute.votesAffected) {
           removed++;
           return false;
         }
         return true;
       });
     }
-    
+
     updateResults({
       votes: adjustedVotes,
       disputes: [
         ...results.disputes,
         {
-          id: pendingDispute.id,
-          zoneId: pendingDispute.zone,
-          reason: pendingDispute.reason,
-          votesAffected: pendingDispute.votesAffected,
+          id: dispute.id,
+          zoneId: dispute.zone,
+          reason: dispute.reason,
+          votesAffected: dispute.votesAffected,
           status: "RESOLVED",
           resolution,
         } as any,
       ],
     });
-
-    setPendingDispute(null);
-    setDisputeAdvisory("");
   };
 
   const handleAdvisorSend = async (msg: string) => {
@@ -218,7 +237,7 @@ export default function PollingPage() {
           const expected = Math.floor(TOTAL_VOTERS / 3);
           const status = count === 0 ? "PENDING" : count >= expected ? "CERTIFIED" : "CLASSIFIED";
           const text = count === 0 ? "OPEN" : count >= expected ? "CLOSED" : "COUNTING";
-          
+
           return (
             <OfficialCard key={zone} title={zone}>
               <div className="flex flex-col items-center gap-6 py-4">
@@ -237,7 +256,7 @@ export default function PollingPage() {
             <h1 className="text-3xl font-bold text-inkNavy">POLLING DAY — LIVE COUNT</h1>
           </div>
           <div className="font-mono text-2xl font-bold text-inkNavy tracking-widest">
-            {currentTime.toLocaleTimeString()}
+            {currentTime}
           </div>
         </div>
 
@@ -247,26 +266,27 @@ export default function PollingPage() {
 
         <OfficialCard title="Candidate Tally">
           <div className="flex flex-col gap-8">
-            <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E5E5" />
-                  <XAxis dataKey="name" tick={{ fontFamily: "monospace", fontSize: 10, fill: "#666666" }} />
-                  <YAxis tick={{ fontFamily: "monospace", fontSize: 10, fill: "#666666" }} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "#F5F0E8", border: "2px solid #1A1A2E", borderRadius: 0, fontFamily: "monospace", fontSize: 12 }}
-                    itemStyle={{ color: "#1A1A2E" }}
-                    cursor={{ fill: "#1A1A2E", opacity: 0.05 }}
-                  />
-                  <Bar dataKey="votes" fill="#1A1A2E" radius={[2, 2, 0, 0]}>
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            
+            <BarChart
+              width={600}
+              height={288}
+              data={chartData}
+              margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E5E5" />
+              <XAxis dataKey="name" tick={{ fontFamily: "monospace", fontSize: 10, fill: "#666666" }} />
+              <YAxis tick={{ fontFamily: "monospace", fontSize: 10, fill: "#666666" }} />
+              <Tooltip
+                contentStyle={{ backgroundColor: "#F5F0E8", border: "2px solid #1A1A2E", borderRadius: 0, fontFamily: "monospace", fontSize: 12 }}
+                itemStyle={{ color: "#1A1A2E" }}
+                cursor={{ fill: "#1A1A2E", opacity: 0.05 }}
+              />
+              <Bar dataKey="votes" fill="#1A1A2E" radius={[2, 2, 0, 0]}>
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Bar>
+            </BarChart>
+
             <div className="flex flex-col gap-2">
               {candidateCounts.map((c) => (
                 <div key={c.id} className="flex items-center justify-between border-b border-ruleGray py-3">

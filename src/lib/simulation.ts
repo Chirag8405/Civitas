@@ -37,13 +37,9 @@ export const startSimulation = async (userId: string, candidates: Candidate[], t
     return "Zone 3";
   };
 
-  // Init elections document
-  const electionRef = doc(db, "elections", userId);
-  const batch = writeBatch(db);
-  batch.set(electionRef, { status: "polling", totalVoters }, { merge: true });
-  await batch.commit();
-
+  console.log("About to start setInterval");
   simulationInterval = setInterval(async () => {
+    console.log("Interval tick firing");
     if (votesCast >= totalVoters) {
       stopSimulation();
       return;
@@ -79,8 +75,29 @@ export const startSimulation = async (userId: string, candidates: Candidate[], t
       });
     }
 
-    await writeBatchDb.commit();
-  }, 3000);
+    console.log("Simulation tick — writing", batchSize, "votes, total so far:", votesCast);
+    try {
+      await writeBatchDb.commit();
+      console.log("Batch committed successfully, votesCast:", votesCast);
+      
+      // Verify by reading back
+      const { getDocs } = await import("firebase/firestore");
+      const snap = await getDocs(collection(db, "elections", userId, "votes"));
+      console.log("Votes in Firestore after write:", snap.size);
+    } catch (e) {
+      console.error("Firestore write failed:", e);
+    }
+  }, 1000);
+
+  // Init elections document
+  const electionRef = doc(db, "elections", userId);
+  const batch = writeBatch(db);
+  batch.set(electionRef, { status: "polling", totalVoters }, { merge: true });
+  try {
+    await batch.commit();
+  } catch (e) {
+    console.error("Init batch FAILED:", e);
+  }
 };
 
 export const stopSimulation = () => {
