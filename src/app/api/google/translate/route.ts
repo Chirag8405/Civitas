@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+
+const requestSchema = z.object({
+  texts: z.record(z.string(), z.string()), // fieldId → text
+  targetLanguage: z.string().min(1),
+});
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    const body = await req.json();
-    const { texts, targetLanguage } = body as {
-      texts: Record<string, string>; // fieldId → text
-      targetLanguage: string;
-    };
+    const bodyJson = await req.json();
+    const result = requestSchema.safeParse(bodyJson);
+
+    if (!result.success) {
+      return NextResponse.json(
+        { error: "Invalid request body", details: result.error.issues },
+        { status: 400 }
+      );
+    }
+
+    const { texts, targetLanguage } = result.data;
 
     const apiKey = process.env.GOOGLE_TRANSLATION_API_KEY;
     if (!apiKey) {

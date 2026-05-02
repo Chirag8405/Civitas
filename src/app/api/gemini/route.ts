@@ -2,19 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { SYSTEM_PROMPT } from "@/lib/gemini";
+import { z } from "zod";
 
-interface GeminiMessage {
-  role: "user" | "assistant";
-  content: string;
-}
-
-interface GeminiRequestBody {
-  messages: GeminiMessage[];
-  context?: {
-    phase: string;
-    constituency: string;
-  };
-}
+const requestSchema = z.object({
+  messages: z.array(
+    z.object({
+      role: z.string(),
+      content: z.string(),
+    })
+  ),
+  context: z.object({}).passthrough().optional(),
+});
 
 const RATE_LIMIT = {
   maxRequests: 10,
@@ -60,10 +58,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const body: GeminiRequestBody = await req.json();
-    const { messages, context } = body;
+    const bodyJson = await req.json();
+    const result = requestSchema.safeParse(bodyJson);
 
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    if (!result.success) {
+      return NextResponse.json(
+        { error: "Invalid request body", details: result.error.issues },
+        { status: 400 }
+      );
+    }
+
+    const { messages, context } = result.data;
+
+    if (messages.length === 0) {
       return NextResponse.json(
         { error: "Invalid messages format" },
         { status: 400 }
@@ -81,7 +88,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Get API key
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error("Missing GOOGLE_GEMINI_API_KEY");
       return NextResponse.json(
         { error: "Server misconfiguration" },
         { status: 500 }
@@ -91,7 +97,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Build context-aware system prompt
     let systemPrompt = SYSTEM_PROMPT;
     if (context) {
-      systemPrompt += `\n\n[CURRENT CONTEXT]\nPhase: ${context.phase}\nConstituency: ${context.constituency}`;
+      systemPrompt += `\n\n[CURRENT CONTEXT]\nPhase: ${(context as any).phase}\nConstituency: ${(context as any).constituency}`;
     }
 
     // Format messages for Gemini API

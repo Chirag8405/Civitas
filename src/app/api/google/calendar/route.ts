@@ -2,6 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import type { Milestone } from "@/types";
+import { z } from "zod";
+
+const requestSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("generate"),
+    country: z.string().min(1),
+    electoralSystem: z.string().min(1),
+  }),
+  z.object({
+    action: z.literal("create"),
+    milestones: z.array(z.any()),
+    constituencyName: z.string().min(1),
+  }),
+]);
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 function todayPlus(days: number): string {
@@ -22,15 +36,21 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { action } = body as { action: "generate" | "create" };
+    const bodyJson = await req.json();
+    const result = requestSchema.safeParse(bodyJson);
+
+    if (!result.success) {
+      return NextResponse.json(
+        { error: "Invalid request body", details: result.error.issues },
+        { status: 400 }
+      );
+    }
+
+    const body = result.data;
 
     // ── GENERATE: Gemini Search Grounding → milestone JSON ─────────────────
-    if (action === "generate") {
-      const { country, electoralSystem } = body as {
-        country: string;
-        electoralSystem: string;
-      };
+    if (body.action === "generate") {
+      const { country, electoralSystem } = body;
 
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
@@ -68,8 +88,6 @@ Use realistic dates spread over 45 days from today. First milestone should be "p
       );
 
       if (!geminiRes.ok) {
-        const err = await geminiRes.json();
-        console.error("[calendar/generate] Gemini error:", err);
         return NextResponse.json(
           { error: "Gemini call failed" },
           { status: 500 }
@@ -87,7 +105,6 @@ Use realistic dates spread over 45 days from today. First milestone should be "p
       try {
         milestones = JSON.parse(jsonText);
       } catch {
-        console.error("[calendar/generate] Parse failed, raw:", rawText);
         // Fallback milestones
         milestones = [
           { id: "m1", date: todayPlus(-7), title: "Writ Issued", description: "Election writ issued by the Returning Officer.", phase: "registration", status: "past" },
@@ -105,25 +122,22 @@ Use realistic dates spread over 45 days from today. First milestone should be "p
     }
 
     // ── CREATE: Google Calendar API v3 event series ────────────────────────
-    if (action === "create") {
-      const { milestones, constituencyName } = body as {
-        milestones: Milestone[];
-        constituencyName: string;
-      };
+    if (body.action === "create") {
+      const { milestones, constituencyName } = body;
       const accessToken = (session as any)?.accessToken as string | undefined;
 
       if (!accessToken) {
         return NextResponse.json({
           mock: true,
           calendarId: "primary",
-          eventCount: milestones.length,
+          eventCount: (milestones as any[]).length,
           message: "No Google access token. Re-authenticate to sync real calendar events.",
         });
       }
 
       const createdEventIds: string[] = [];
 
-      for (const m of milestones) {
+      for (const m of (milestones as any[])) {
         const eventRes = await fetch(
           "https://www.googleapis.com/calendar/v3/calendars/primary/events",
           {

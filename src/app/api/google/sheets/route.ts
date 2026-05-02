@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import type { Zone } from "@/types";
+import { z } from "zod";
 
-interface SheetsRequest {
-  constituencyName: string;
-  country: string;
-  zones: Zone[];
-}
+const requestSchema = z.object({
+  constituencyName: z.string().min(1),
+  country: z.string().optional(),
+  zones: z.array(z.any()).optional(),
+});
 
 // Generate synthetic voter data (200 rows)
 function generateVoterRoll(
@@ -67,21 +68,29 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body: SheetsRequest = await req.json();
-    const { constituencyName, country, zones } = body;
+    const bodyJson = await req.json();
+    const result = requestSchema.safeParse(bodyJson);
+
+    if (!result.success) {
+      return NextResponse.json(
+        { error: "Invalid request body", details: result.error.issues },
+        { status: 400 }
+      );
+    }
+
+    const { constituencyName, country, zones = [] } = result.data;
 
     const accessToken = (session as any)?.accessToken as string | undefined;
 
     // If no real OAuth token, return a mock response (graceful degradation)
     if (!accessToken) {
-      console.warn("[sheets] No Google access token. Returning mock voter roll.");
       return NextResponse.json({
         sheetUrl: null,
         voterCount: 200,
         mock: true,
         message:
           "Voter roll generated in-memory. Re-authenticate with Google to persist to Sheets.",
-        zones: zones.map((z) => ({
+        zones: zones.map((z: any) => ({
           id: z.id,
           name: z.name,
           voterCount: Math.floor(200 / (zones.length || 1)),
@@ -112,7 +121,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     if (!createRes.ok) {
       const err = await createRes.json();
-      console.error("[sheets] Create error:", err);
       return NextResponse.json(
         { error: "Failed to create Google Sheet", details: err },
         { status: 500 }
@@ -143,7 +151,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     if (!writeRes.ok) {
       const err = await writeRes.json();
-      console.error("[sheets] Write error:", err);
       return NextResponse.json(
         { error: "Sheet created but data write failed", sheetUrl },
         { status: 500 }
@@ -197,7 +204,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // Zone breakdown
     const voterRows = rows.slice(1); // exclude header
-    const zoneBreakdown = zones.map((z) => ({
+    const zoneBreakdown = zones.map((z: any) => ({
       id: z.id,
       name: z.name,
       voterCount: voterRows.filter((r) => r[3] === z.id).length,

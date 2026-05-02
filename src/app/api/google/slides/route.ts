@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { z } from "zod";
+
+const requestSchema = z.object({
+  constituencyName: z.string().min(1),
+  candidateCounts: z.array(z.any()),
+  winner: z.any().nullable(),
+});
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,13 +16,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { constituencyName, candidateCounts, winner } = body;
-    const accessToken = (session as any)?.accessToken as string | undefined;
+    const bodyJson = await req.json();
+    const result = requestSchema.safeParse(bodyJson);
 
-    if (!constituencyName) {
-      return NextResponse.json({ error: "Missing constituency name" }, { status: 400 });
+    if (!result.success) {
+      return NextResponse.json(
+        { error: "Invalid request body", details: result.error.issues },
+        { status: 400 }
+      );
     }
+
+    const { constituencyName, candidateCounts, winner } = result.data;
+    const accessToken = (session as any)?.accessToken as string | undefined;
 
     if (!accessToken) {
       return NextResponse.json({
@@ -92,6 +104,7 @@ export async function POST(req: NextRequest) {
       { createShape: { objectId: "s3label", shapeType: "TEXT_BOX", elementProperties: { pageObjectId: "slide3", size: { width: { magnitude: 600, unit: "PT" }, height: { magnitude: 60, unit: "PT" } }, transform: { scaleX: 1, scaleY: 1, translateX: 50, translateY: 80, unit: "PT" } } } },
       { insertText: { objectId: "s3label", insertionIndex: 0, text: "ELECTED MEMBER" } },
       { updateTextStyle: { objectId: "s3label", textRange: { type: "ALL" }, style: { foregroundColor: { opaqueColor: { rgbColor: { red: 0.83, green: 0.64, blue: 0.1 } } }, fontSize: { magnitude: 20, unit: "PT" }, bold: true }, fields: "foregroundColor,fontSize,bold" } },
+      // Slide 3 winner name
       { createShape: { objectId: "s3winner", shapeType: "TEXT_BOX", elementProperties: { pageObjectId: "slide3", size: { width: { magnitude: 600, unit: "PT" }, height: { magnitude: 100, unit: "PT" } }, transform: { scaleX: 1, scaleY: 1, translateX: 50, translateY: 160, unit: "PT" } } } },
       { insertText: { objectId: "s3winner", insertionIndex: 0, text: `${winner?.name ?? "N/A"}\n${winner?.party ?? ""}` } },
       { updateTextStyle: { objectId: "s3winner", textRange: { type: "ALL" }, style: { foregroundColor: { opaqueColor: { rgbColor: { red: 0.96, green: 0.94, blue: 0.91 } } }, fontSize: { magnitude: 36, unit: "PT" }, bold: true }, fields: "foregroundColor,fontSize,bold" } },

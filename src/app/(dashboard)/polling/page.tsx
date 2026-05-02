@@ -72,7 +72,6 @@ export default function PollingPage() {
   }, [pollingComplete, router]);
 
   useEffect(() => {
-    console.log("Candidates available:", election.candidates);
     // Sub to Firestore
     const db = getFirestore(firebaseApp);
     const votesRef = collection(db, "elections", ELECTION_ID, "votes");
@@ -101,7 +100,6 @@ export default function PollingPage() {
     const candidates = useSimulationStore.getState().election.candidates;
     if (candidates.length > 0 && !simulationStarted.current) {
       simulationStarted.current = true;
-      console.log("startSimulation firing with", candidates.length, "candidates");
       startSimulation(ELECTION_ID, candidates, TOTAL_VOTERS);
     }
 
@@ -138,7 +136,6 @@ export default function PollingPage() {
   }, [pendingDispute, disputeAdvisory, advisoryLoading, constituency.country, constituency.name]);
 
   const handleRuling = async (resolution: "ACCEPT" | "REJECT") => {
-    console.log("Ruling clicked:", resolution);
     if (!pendingDispute) return;
 
     const dispute = pendingDispute;
