@@ -2,7 +2,6 @@
 
 import { signIn } from "next-auth/react";
 import { useState } from "react";
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 export default function LoginPage() {
@@ -22,7 +21,7 @@ export default function LoginPage() {
       if (result?.error) {
         setError(result.error);
       }
-    } catch (err) {
+    } catch (_err) {
       setError("An error occurred during sign-in. Please try again.");
     } finally {
       setLoading(false);

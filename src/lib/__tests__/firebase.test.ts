@@ -1,4 +1,5 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { firebaseApp as fbApp } from '../firebase';
 
 jest.mock('firebase/app');
 
@@ -13,7 +14,7 @@ describe('firebase lib', () => {
 
     // Re-import to trigger initialization
     jest.isolateModules(() => {
-      const { firebaseApp } = require('../firebase');
+      const { firebaseApp } = jest.requireActual<{ firebaseApp: FirebaseApp }>('../firebase');
       expect(initializeApp).toHaveBeenCalled();
       expect(firebaseApp.name).toBe('new-app');
     });
@@ -24,7 +25,7 @@ describe('firebase lib', () => {
     (getApp as jest.Mock).mockReturnValue({ name: 'existing' });
 
     jest.isolateModules(() => {
-      const { firebaseApp } = require('../firebase');
+      const { firebaseApp } = jest.requireActual<{ firebaseApp: FirebaseApp }>('../firebase');
       expect(initializeApp).not.toHaveBeenCalled();
       expect(getApp).toHaveBeenCalled();
       expect(firebaseApp.name).toBe('existing');

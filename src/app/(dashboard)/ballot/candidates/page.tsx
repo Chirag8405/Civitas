@@ -233,7 +233,7 @@ export default function CandidatesPage() {
             {candidates.length === 0 && !closed && (
               <div className="border-2 border-dashed border-ruleGray p-10 text-center">
                 <p className="font-mono text-xs text-midGray">No candidates registered yet.</p>
-                <p className="font-mono text-[10px] text-midGray mt-1">Use "Add Candidate +" to begin.</p>
+                <p className="font-mono text-[10px] text-midGray mt-1">Use &quot;Add Candidate +&quot; to begin.</p>
               </div>
             )}
 

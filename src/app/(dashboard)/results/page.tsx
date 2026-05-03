@@ -31,6 +31,7 @@ export default function ResultsPage() {
 
   useEffect(() => {
     // If votes aren't in Zustand, fetch from Firestore
+     
     if (results.votes && results.votes.length > 0) {
       setLoading(false);
       return;

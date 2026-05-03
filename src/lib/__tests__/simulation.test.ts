@@ -1,5 +1,5 @@
 import { startSimulation, stopSimulation } from '../simulation';
-import { collection, doc, writeBatch, getDocs } from 'firebase/firestore';
+import { collection, doc, writeBatch } from 'firebase/firestore';
 
 jest.mock('firebase/firestore', () => ({
   getFirestore: jest.fn(),

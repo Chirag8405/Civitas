@@ -1,30 +1,35 @@
 /** @jest-environment node */
 import 'isomorphic-fetch';
-import { getServerSession } from 'next-auth';
+import { getServerSession, Session } from 'next-auth';
+import { NextRequest } from 'next/server';
+import { POST } from '../google/calendar/route';
 
 jest.mock('next-auth');
 jest.mock('next/server', () => ({
   NextResponse: {
-    json: (body: any, init?: any) => ({
+    json: (body: Record<string, unknown>, init?: { status?: number }) => ({
       status: init?.status ?? 200,
       json: () => Promise.resolve(body),
     }),
   },
+  NextRequest: jest.fn().mockImplementation((url, init) => ({
+    url,
+    method: init?.method ?? 'POST',
+    headers: new Headers(init?.headers),
+    json: () => Promise.resolve(JSON.parse(init?.body ?? '{}')),
+  })),
 }));
 
 describe('API /api/google/calendar', () => {
-  let POST: any;
-
-  const mockRequest = (body: any) => {
-    return {
-      json: () => Promise.resolve(body),
-    } as any;
+  const mockRequest = (body: Record<string, unknown>): NextRequest => {
+    return new NextRequest('http://localhost:3000/api/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }) as unknown as NextRequest;
   };
 
   beforeEach(() => {
-    jest.isolateModules(() => {
-      POST = require('../google/calendar/route').POST;
-    });
     process.env.GEMINI_API_KEY = 'test-key';
     jest.clearAllMocks();
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -41,14 +46,17 @@ describe('API /api/google/calendar', () => {
   });
 
   it('action:generate returns milestones array with correct shape', async () => {
-    (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'cal@test.com' } });
+    (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'cal@test.com' } } as Session);
     
-    const mockFetch = jest.spyOn(global, 'fetch').mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({
-        candidates: [{ content: { parts: [{ text: JSON.stringify([{ id: 'm1', title: 'Test', date: '2024-01-01', description: 'D', phase: 'registration', status: 'future' }]) }] } }]
-      })
-    } as any);
+    const mockFetch = jest.spyOn(global, 'fetch').mockImplementation(
+      (_input: string | URL | Request): Promise<Response> =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({
+            candidates: [{ content: { parts: [{ text: JSON.stringify([{ id: 'm1', title: 'Test', date: '2024-01-01', description: 'D', phase: 'registration', status: 'future' }]) }] } }]
+          })
+        } as Response)
+    );
 
     const res = await POST(mockRequest({ action: 'generate', country: 'India', electoralSystem: 'FPTP' }));
     expect(res.status).toBe(200);
@@ -58,14 +66,17 @@ describe('API /api/google/calendar', () => {
   });
 
   it('action:generate fallback returns valid milestones when Gemini returns invalid JSON', async () => {
-    (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'cal@test.com' } });
+    (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'cal@test.com' } } as Session);
     
-    jest.spyOn(global, 'fetch').mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({
-        candidates: [{ content: { parts: [{ text: 'INVALID JSON' }] } }]
-      })
-    } as any);
+    jest.spyOn(global, 'fetch').mockImplementation(
+      (_input: string | URL | Request): Promise<Response> =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({
+            candidates: [{ content: { parts: [{ text: 'INVALID JSON' }] } }]
+          })
+        } as Response)
+    );
 
     const res = await POST(mockRequest({ action: 'generate', country: 'India', electoralSystem: 'FPTP' }));
     expect(res.status).toBe(200);
@@ -75,7 +86,7 @@ describe('API /api/google/calendar', () => {
   });
 
   it('returns 400 when action param is missing', async () => {
-    (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'cal@test.com' } });
+    (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'cal@test.com' } } as Session);
     const res = await POST(mockRequest({ constituencyName: 'Test' }));
     expect(res.status).toBe(400);
   });
@@ -86,13 +97,16 @@ describe('API /api/google/calendar', () => {
     (getServerSession as jest.Mock).mockResolvedValue({ 
       user: { email: 'cal@test.com' },
       accessToken: 'token'
-    });
+    } as unknown as Session);
 
-    jest.spyOn(global, 'fetch').mockResolvedValue({
-      ok: false,
-      status: 403,
-      json: () => Promise.resolve({ error: 'Permission Denied' })
-    } as any);
+    jest.spyOn(global, 'fetch').mockImplementation(
+      (_input: string | URL | Request): Promise<Response> =>
+        Promise.resolve({
+          ok: false,
+          status: 403,
+          json: async () => ({ error: 'Permission Denied' })
+        } as Response)
+    );
 
     const res = await POST(mockRequest({ 
       action: 'create', 

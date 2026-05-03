@@ -8,7 +8,6 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { OfficialCard } from "@/components/ui/OfficialCard";
 import { FormField } from "@/components/ui/FormField";
 import { cn } from "@/lib/utils";
-import { StampBadge } from "@/components/ui/StampBadge";
 
 const COUNTRIES = [
   { code: "IN", name: "India", system: "FPTP" },

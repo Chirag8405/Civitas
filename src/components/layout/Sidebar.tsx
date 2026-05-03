@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Lock } from "lucide-react";
+import Image from "next/image";
 
 import { cn } from "@/lib/utils";
 
@@ -75,10 +76,12 @@ export function Sidebar({
 			<div className="border-t-2 border-inkNavy px-6 py-6">
 				<div className="flex items-center gap-3">
 					{avatarUrl ? (
-						<img
+						<Image
 							src={avatarUrl}
 							alt={`${userName} avatar`}
-							className="h-10 w-10 rounded-full object-cover"
+							width={40}
+							height={40}
+							className="rounded-full object-cover"
 						/>
 					) : (
 						<div className="flex h-10 w-10 items-center justify-center rounded-full bg-formWhite text-sm font-mono text-inkNavy">

@@ -45,6 +45,7 @@ export default function VoterRollPage() {
   useEffect(() => {
     if (constituency.zones.length > 0) {
       const perZone = Math.floor(voterCount / constituency.zones.length);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setZoneBreakdown(
         constituency.zones.map((z, i) => ({
           id: z.id,
@@ -57,6 +58,7 @@ export default function VoterRollPage() {
 
   // ── Auto accessibility advisory ────────────────────────────────────────────
   useEffect(() => {
+     
     if (!constituency.name || !constituency.country) {
       setAdvisoryLoading(false);
       return;

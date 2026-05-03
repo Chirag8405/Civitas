@@ -39,6 +39,7 @@ export default function PollingPage() {
 
   const pollingComplete = votes.length >= TOTAL_VOTERS;
 
+   
   useEffect(() => {
     setCurrentTime(new Date().toLocaleTimeString());
     const timer = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000);
@@ -108,6 +109,7 @@ export default function PollingPage() {
   }, []);
 
   // Query Gemini for dispute
+   
   useEffect(() => {
     if (pendingDispute && !disputeAdvisory && !advisoryLoading) {
       setAdvisoryLoading(true);
@@ -202,7 +204,8 @@ export default function PollingPage() {
           text: data.content ?? data.error ?? "No response",
         },
       ]);
-    } catch (err: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_err: unknown) {
       setAdvisorMessages((prev) => [
         ...prev,
         { id: Date.now().toString(), text: "Connection error." },

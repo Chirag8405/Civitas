@@ -4,7 +4,7 @@ import { ElectionTimeline, TimelineMilestone } from '../ElectionTimeline';
 
 jest.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className }: any) => <div className={className}>{children}</div>
+    div: ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={className}>{children}</div>
   }
 }));
 

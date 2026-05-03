@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useSimulationStore } from "@/store/simulation.store";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { OfficialCard } from "@/components/ui/OfficialCard";
 import { StampBadge } from "@/components/ui/StampBadge";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +44,7 @@ export default function TranslatePage() {
     }
   }, [targetLang, constituency.country, router]);
 
-  const pollingDate = election.milestones.find((m) => m.phase === "polling")?.date ?? "TBD";
+
 
   const buildFields = (): TranslationField[] => {
     const fields: TranslationField[] = [
@@ -80,6 +79,7 @@ export default function TranslatePage() {
   const [certifying, setCertifying] = useState(false);
 
   // Check all approved
+   
   useEffect(() => {
     setAllApproved(fields.length > 0 && fields.every((f) => f.approval === "approved"));
   }, [fields]);

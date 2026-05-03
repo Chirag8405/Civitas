@@ -1,21 +1,30 @@
 /** @jest-environment node */
 import 'isomorphic-fetch';
+import { NextRequest } from 'next/server';
 import { POST } from '../simulation/validate-constituency/route';
 
 jest.mock('next/server', () => ({
   NextResponse: {
-    json: (body: any, init?: any) => ({
+    json: (body: Record<string, unknown>, init?: { status?: number }) => ({
       status: init?.status ?? 200,
       json: () => Promise.resolve(body),
     }),
   },
+  NextRequest: jest.fn().mockImplementation((url, init) => ({
+    url,
+    method: init?.method ?? 'POST',
+    headers: new Headers(init?.headers),
+    json: () => Promise.resolve(JSON.parse(init?.body ?? '{}')),
+  })),
 }));
 
 describe('API /api/validate-constituency', () => {
-  const mockRequest = (body: any) => {
-    return {
-      json: () => Promise.resolve(body),
-    } as any;
+  const mockRequest = (body: Record<string, unknown>): NextRequest => {
+    return new NextRequest('http://localhost:3000/api/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
   };
 
   const validBooth = (id: string, lat: number, lng: number) => ({
@@ -88,7 +97,7 @@ describe('API /api/validate-constituency', () => {
       ],
       zones: validZones
     }));
-    const data = await res.json();
+    const _data = await res.json();
     // Since all booths are at one corner (10,76), points at (10.001, 76.001) 
     // will be > 1.2km away if we assume 0.001 deg is ~111m, so diag is ~150m.
     // Wait, 1.2km is quite a bit. Let's make them really far.
@@ -111,7 +120,7 @@ describe('API /api/validate-constituency', () => {
     // Trigger catch block by passing something that makes req.json() throw
     const res = await POST({
         json: () => Promise.reject(new Error('JSON Error'))
-    } as any);
+    } as unknown as NextRequest);
     expect(res.status).toBe(500);
     expect(console.error).toHaveBeenCalled();
   });

@@ -37,8 +37,7 @@ export function FormField({ label, error, htmlFor, id, children }: FormFieldProp
 	);
 }
 
-export interface OfficialInputProps
-	extends React.InputHTMLAttributes<HTMLInputElement> {}
+export type OfficialInputProps = React.InputHTMLAttributes<HTMLInputElement>;
 
 export const OfficialInput = React.forwardRef<
 	HTMLInputElement,
@@ -56,8 +55,7 @@ export const OfficialInput = React.forwardRef<
 ));
 OfficialInput.displayName = "OfficialInput";
 
-export interface OfficialTextareaProps
-	extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
+export type OfficialTextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement>;
 
 export const OfficialTextarea = React.forwardRef<
 	HTMLTextAreaElement,
@@ -75,8 +73,7 @@ export const OfficialTextarea = React.forwardRef<
 ));
 OfficialTextarea.displayName = "OfficialTextarea";
 
-export interface OfficialSelectProps
-	extends React.SelectHTMLAttributes<HTMLSelectElement> {}
+export type OfficialSelectProps = React.SelectHTMLAttributes<HTMLSelectElement>;
 
 export const OfficialSelect = React.forwardRef<
 	HTMLSelectElement,

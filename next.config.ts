@@ -1,20 +1,20 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   poweredByHeader: false,
   compress: true,
+  serverExternalPackages: ['firebase-admin'],
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
+        port: '',
+        pathname: '/**',
       },
     ],
-  },
-  experimental: {
-    serverComponentsExternalPackages: ['firebase-admin'],
   },
 };
 

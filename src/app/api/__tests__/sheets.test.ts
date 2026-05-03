@@ -1,30 +1,35 @@
 /** @jest-environment node */
 import 'isomorphic-fetch';
-import { getServerSession } from 'next-auth';
+import { getServerSession, Session } from 'next-auth';
+import { NextRequest } from 'next/server';
+import { POST } from '../google/sheets/route';
 
 jest.mock('next-auth');
 jest.mock('next/server', () => ({
   NextResponse: {
-    json: (body: any, init?: any) => ({
+    json: (body: Record<string, unknown>, init?: { status?: number }) => ({
       status: init?.status ?? 200,
       json: () => Promise.resolve(body),
     }),
   },
+  NextRequest: jest.fn().mockImplementation((url, init) => ({
+    url,
+    method: init?.method ?? 'POST',
+    headers: new Headers(init?.headers),
+    json: () => Promise.resolve(JSON.parse(init?.body ?? '{}')),
+  })),
 }));
 
 describe('API /api/google/sheets', () => {
-  let POST: any;
-
-  const mockRequest = (body: any) => {
-    return {
-      json: () => Promise.resolve(body),
-    } as any;
+  const mockRequest = (body: Record<string, unknown>): NextRequest => {
+    return new NextRequest('http://localhost:3000/api/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }) as unknown as NextRequest;
   };
 
   beforeEach(() => {
-    jest.isolateModules(() => {
-      POST = require('../google/sheets/route').POST;
-    });
     jest.clearAllMocks();
     jest.spyOn(console, 'error').mockImplementation(() => {});
   });
@@ -40,13 +45,13 @@ describe('API /api/google/sheets', () => {
   });
 
   it('returns 400 when constituencyName missing', async () => {
-    (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'test@example.com' } });
+    (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'test@example.com' } } as Session);
     const res = await POST(mockRequest({}));
     expect(res.status).toBe(400);
   });
 
   it('returns mock response when no accessToken', async () => {
-    (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'test@example.com' } });
+    (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'test@example.com' } } as Session);
     const res = await POST(mockRequest({ constituencyName: 'Test', zones: [{id:'z1', name:'Z1'}] }));
     const data = await res.json();
     expect(data.mock).toBe(true);
@@ -58,22 +63,23 @@ describe('API /api/google/sheets', () => {
     (getServerSession as jest.Mock).mockResolvedValue({ 
       user: { email: 'test@test.com' },
       accessToken: 'mock-token'
-    });
+    } as unknown as Session);
 
-    const mockFetch = jest.spyOn(global, 'fetch').mockImplementation((url: any) => {
+    jest.spyOn(global, 'fetch').mockImplementation((_input: string | URL | Request) => {
+      const url = typeof _input === 'string' ? _input : (_input as Request).url || _input.toString();
       if (url.includes('/permissions')) {
         return Promise.reject(new Error('Sharing Failed'));
       }
       if (url.includes('/values/')) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as any);
+        return Promise.resolve({ ok: true, json: async () => ({}) } as Response);
       }
       if (url.includes(':batchUpdate')) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as any);
+        return Promise.resolve({ ok: true, json: async () => ({}) } as Response);
       }
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ spreadsheetId: 'sheet123' })
-      } as any);
+        json: async () => ({ spreadsheetId: 'sheet123' })
+      } as Response);
     });
 
     const res = await POST(mockRequest({ constituencyName: 'Test' }));
@@ -87,16 +93,17 @@ describe('API /api/google/sheets', () => {
     (getServerSession as jest.Mock).mockResolvedValue({ 
       user: { email: 'test@test.com' },
       accessToken: 'mock-token'
-    });
+    } as unknown as Session);
 
-    jest.spyOn(global, 'fetch').mockImplementation((url: any) => {
+    jest.spyOn(global, 'fetch').mockImplementation((_input: string | URL | Request) => {
+      const url = typeof _input === 'string' ? _input : (_input as Request).url || _input.toString();
       if (url.includes('/values/')) {
-        return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: 'Write Fail' }) } as any);
+        return Promise.resolve({ ok: false, json: async () => ({ error: 'Write Fail' }) } as Response);
       }
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ spreadsheetId: 'sheetWriteFail' })
-      } as any);
+        json: async () => ({ spreadsheetId: 'sheetWriteFail' })
+      } as Response);
     });
 
     const res = await POST(mockRequest({ constituencyName: 'Test' }));

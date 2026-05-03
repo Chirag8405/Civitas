@@ -20,7 +20,7 @@ const config: Config = {
     '/.next/',
     '/src/app/\\(auth\\)/',
     '/src/app/layout.tsx',
-    '/src/middleware.ts',
+    '/src/proxy.ts',
   ],
   collectCoverageFrom: [
     'src/components/ui/StampBadge.tsx',
