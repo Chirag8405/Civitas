@@ -14,12 +14,12 @@ export function FormField({ label, error, htmlFor, id, children }: FormFieldProp
 	const finalHtmlFor = htmlFor ?? id;
 	const field = React.isValidElement(children)
 		? React.cloneElement(children as React.ReactElement<any>, {
-				className: cn(
-					(children.props as { className?: string }).className,
-					error ? "border-officialRed bg-stampRedBg" : null
-				),
-				"aria-invalid": error ? true : undefined,
-			})
+			className: cn(
+				(children.props as { className?: string }).className,
+				error ? "border-officialRed bg-stampRedBg" : null
+			),
+			"aria-invalid": error ? true : undefined,
+		})
 		: children;
 
 	return (

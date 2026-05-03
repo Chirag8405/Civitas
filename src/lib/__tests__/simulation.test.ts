@@ -55,7 +55,7 @@ describe('simulation lib', () => {
 
   it('startSimulation sets interval and clears previous one', async () => {
     const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
-    
+
     await startSimulation(userId, mockCandidates, totalVoters);
     stopSimulation(); // Reset guard manually to allow second start
     await startSimulation(userId, mockCandidates, totalVoters);
@@ -75,7 +75,7 @@ describe('simulation lib', () => {
     // Small number to reach 60% quickly
     const smallTotal = 10;
     await startSimulation(userId, mockCandidates, smallTotal);
-    
+
     // First tick
     jest.runOnlyPendingTimers();
     // Second tick - should reach 6 votes (60%)
@@ -104,7 +104,7 @@ describe('simulation lib', () => {
   });
 
   it('handles write errors gracefully', async () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
     const mockBatch = {
       set: jest.fn(),
       commit: jest.fn().mockRejectedValue(new Error('Firestore Error')),
@@ -113,11 +113,11 @@ describe('simulation lib', () => {
 
     await startSimulation(userId, mockCandidates, 10);
     jest.runOnlyPendingTimers();
-    
+
     // Wait for promise resolution
     await Promise.resolve();
     await Promise.resolve();
-    
+
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('FAILED'), expect.any(String));
     consoleSpy.mockRestore();
   });
@@ -132,10 +132,10 @@ describe('simulation lib', () => {
     (writeBatch as jest.Mock).mockReturnValue(mockBatch);
 
     await startSimulation(userId, mockCandidates, 100);
-    
+
     // Run multiple ticks to get different zones
-    for(let i=0; i<10; i++) {
-        jest.runOnlyPendingTimers();
+    for (let i = 0; i < 10; i++) {
+      jest.runOnlyPendingTimers();
     }
 
     const setCalls = mockBatch.set.mock.calls;

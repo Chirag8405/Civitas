@@ -32,10 +32,10 @@ describe('API /api/gemini', () => {
   beforeEach(() => {
     process.env.GEMINI_API_KEY = 'test-key';
     jest.clearAllMocks();
-    
+
     // Silence console.error for expected errors
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    
+    jest.spyOn(console, 'error').mockImplementation(() => { });
+
     // Default fetch mock to prevent real network calls
     jest.spyOn(global, 'fetch').mockImplementation(
       (_input: string | URL | Request): Promise<Response> =>
@@ -64,7 +64,7 @@ describe('API /api/gemini', () => {
 
   it('returns 500 when Gemini API fails', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'gemini@test.com' } } as Session);
-    
+
     // Specialized mock for this test
     (global.fetch as jest.Mock).mockImplementation(
       (_input: string | URL | Request): Promise<Response> =>
@@ -74,27 +74,27 @@ describe('API /api/gemini', () => {
         } as Response)
     );
 
-    const res = await POST(mockRequest({ 
-      messages: [{ role: 'user', content: 'hello' }] 
+    const res = await POST(mockRequest({
+      messages: [{ role: 'user', content: 'hello' }]
     }));
     expect(res.status).toBe(500);
   });
 
   it('returns 200 on success and check response format', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'gemini@test.com' } } as Session);
-    
+
     (global.fetch as jest.Mock).mockImplementation(
       (_input: string | URL | Request): Promise<Response> =>
         Promise.resolve({
           ok: true,
-          json: async () => ({ 
-            candidates: [{ content: { parts: [{ text: 'AI Response' }] } }] 
+          json: async () => ({
+            candidates: [{ content: { parts: [{ text: 'AI Response' }] } }]
           })
         } as Response)
     );
 
-    const res = await POST(mockRequest({ 
-      messages: [{ role: 'user', content: 'hello' }] 
+    const res = await POST(mockRequest({
+      messages: [{ role: 'user', content: 'hello' }]
     }));
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -104,12 +104,12 @@ describe('API /api/gemini', () => {
 
   it('returns 429 when rate limit exceeded', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'ratelimit@test.com' } } as Session);
-    
+
     // Call 10 times (limit is 10)
     for (let i = 0; i < 10; i++) {
-        await POST(mockRequest({ messages: [{ role: 'user', content: 'h' }] }));
+      await POST(mockRequest({ messages: [{ role: 'user', content: 'h' }] }));
     }
-    
+
     // 11th call
     const res = await POST(mockRequest({ messages: [{ role: 'user', content: 'h' }] }));
     expect(res.status).toBe(429);
@@ -117,18 +117,18 @@ describe('API /api/gemini', () => {
 
   it('passes context correctly to Gemini prompt', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'context@test.com' } } as Session);
-    
+
     (global.fetch as jest.Mock).mockImplementation(
       (_input: string | URL | Request): Promise<Response> =>
         Promise.resolve({
           ok: true,
-          json: async () => ({ 
-            candidates: [{ content: { parts: [{ text: 'OK' }] } }] 
+          json: async () => ({
+            candidates: [{ content: { parts: [{ text: 'OK' }] } }]
           })
         } as Response)
     );
 
-    await POST(mockRequest({ 
+    await POST(mockRequest({
       messages: [{ role: 'user', content: 'hello' }],
       context: { phase: 'polling', constituency: 'Mumbai' }
     }));

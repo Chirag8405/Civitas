@@ -32,7 +32,7 @@ describe('API /api/google/calendar', () => {
   beforeEach(() => {
     process.env.GEMINI_API_KEY = 'test-key';
     jest.clearAllMocks();
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => { });
   });
 
   afterEach(() => {
@@ -47,7 +47,7 @@ describe('API /api/google/calendar', () => {
 
   it('action:generate returns milestones array with correct shape', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'cal@test.com' } } as Session);
-    
+
     const mockFetch = jest.spyOn(global, 'fetch').mockImplementation(
       (_input: string | URL | Request): Promise<Response> =>
         Promise.resolve({
@@ -67,7 +67,7 @@ describe('API /api/google/calendar', () => {
 
   it('action:generate fallback returns valid milestones when Gemini returns invalid JSON', async () => {
     (getServerSession as jest.Mock).mockResolvedValue({ user: { email: 'cal@test.com' } } as Session);
-    
+
     jest.spyOn(global, 'fetch').mockImplementation(
       (_input: string | URL | Request): Promise<Response> =>
         Promise.resolve({
@@ -94,7 +94,7 @@ describe('API /api/google/calendar', () => {
   it('action:create handles Calendar API 403 gracefully (returns 200 with 0 events as per implementation)', async () => {
     // Note: The route implementation (line 167) doesn't return 500 if an individual event fail.
     // It just doesn't push to createdEventIds.
-    (getServerSession as jest.Mock).mockResolvedValue({ 
+    (getServerSession as jest.Mock).mockResolvedValue({
       user: { email: 'cal@test.com' },
       accessToken: 'token'
     } as unknown as Session);
@@ -108,12 +108,12 @@ describe('API /api/google/calendar', () => {
         } as Response)
     );
 
-    const res = await POST(mockRequest({ 
-      action: 'create', 
+    const res = await POST(mockRequest({
+      action: 'create',
       milestones: [{ id: 'm1', title: 'T', date: '2024-01-01', description: 'D', phase: 'polling', status: 'future' }],
       constituencyName: 'Test'
     }));
-    
+
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.eventIds).toHaveLength(0);
